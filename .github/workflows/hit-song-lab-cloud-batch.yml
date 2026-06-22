@@ -1,6 +1,12 @@
 name: Hit Song Lab cloud batch
 
 on:
+  push:
+    paths:
+      - ".github/workflows/hit-song-lab-cloud-batch.yml"
+      - "backend/scripts/cloud_hit_song_batch.py"
+      - "backend/seeds/cloud_reference_queue.json"
+      - "backend/requirements-cloud.txt"
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
