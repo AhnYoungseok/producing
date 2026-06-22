@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+backend/.venv/
+*.pyc
+*.log
+
+# Backend runtime data
+.env
+backend/.env
+backend/data/
+backend/storage/
+backend/app/storage/
+backend/exports/
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Node
+frontend/.env.local
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated artifacts
+outputs/
+artifacts/
+
+# OS/editor
+.DS_Store
+Thumbs.db

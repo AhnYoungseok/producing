@@ -1,0 +1,31 @@
+{
+  "name": "hit-song-lab-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-hook-form": "7.68.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "autoprefixer": "10.4.20",
+    "eslint": "9.18.0",
+    "eslint-config-next": "16.2.9",
+    "postcss": "8.5.15",
+    "tailwindcss": "3.4.17",
+    "typescript": "5.7.3"
+  },
+  "overrides": {
+    "postcss": "8.5.15"
+  }
+}
