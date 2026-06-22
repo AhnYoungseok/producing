@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -15,21 +16,35 @@ SPREADSHEET_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 DEFAULT_SHEET_ID = "1U_WUMnel9AZv-7YymqMRMDw5iX_MI-M3r2Yw0e7umNs"
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUEUE_PATH = ROOT_DIR / "backend" / "seeds" / "cloud_reference_queue.json"
+LEDGER_PATH = ROOT_DIR / "cloud_ledger" / "song_library.json"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Add safe reference-song research rows to a Google Sheet.")
     parser.add_argument("--batch-size", type=int, default=10)
     parser.add_argument("--sheet-id", default=os.environ.get("GOOGLE_SHEET_ID") or DEFAULT_SHEET_ID)
+    parser.add_argument("--ledger-path", default=str(LEDGER_PATH))
     parser.add_argument("--date", default=datetime.now().strftime("%Y.%-m.%-d") if os.name != "nt" else _windows_date())
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
     queue = _load_queue()
-    service = None if args.dry_run else _build_sheets_service()
-    existing_rows = [] if args.dry_run else _read_values(service, args.sheet_id, "'Song Library'!A:J")
-    existing_keys = _existing_song_keys(existing_rows)
-    selected = _select_unique(queue, existing_keys, args.batch_size)
+    ledger_path = Path(args.ledger_path)
+    ledger = _load_ledger(ledger_path)
+    ledger_records = ledger.get("songs", [])
+
+    service = None
+    existing_rows = []
+    google_sheet_status = "skipped: Google credentials are not set"
+    if not args.dry_run and _has_google_credentials():
+        service = _build_sheets_service()
+        existing_rows = _read_values(service, args.sheet_id, "'Song Library'!A:K")
+        google_sheet_status = "ready"
+
+    existing_keys = _existing_song_keys(existing_rows) | _record_keys(ledger_records)
+    existing_hashes = set(ledger.get("baseline", {}).get("identity_hashes", []))
+    existing_hashes |= {_identity_hash(row.get("title"), row.get("artist")) for row in ledger_records}
+    selected = _select_unique(queue, existing_keys, existing_hashes, args.batch_size)
 
     if len(selected) != args.batch_size:
         raise SystemExit(
@@ -37,52 +52,88 @@ def main() -> None:
             "Add more real songs to backend/seeds/cloud_reference_queue.json."
         )
 
+    now_iso = datetime.now().isoformat(timespec="seconds")
+    selected = [_ledger_song(row, args.date, now_iso) for row in selected]
+    merged_ledger_records = ledger_records + selected
+    baseline_count = int(ledger.get("baseline", {}).get("count") or len(existing_hashes))
+    total_after_ledger = baseline_count + len(merged_ledger_records)
+
     if args.dry_run:
-        print(json.dumps({"selected": [f"{row['title']} - {row['artist']}" for row in selected]}, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    "selected": [f"{row['title']} - {row['artist']}" for row in selected],
+                    "ledger_total_after": total_after_ledger,
+                    "google_sheet_status": "dry_run",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return
 
-    sheet_meta = service.spreadsheets().get(spreadsheetId=args.sheet_id).execute()
-    _ensure_sheets(
-        service,
-        args.sheet_id,
-        sheet_meta,
-        [
-            "전체 곡명 Raw",
-            "후크 멜로디 리듬 Raw",
-            "Chord Lyrics Raw",
-            "Producer Features Raw",
-            "연동 검증",
-            args.date + " 추천 정보",
-        ],
+    _save_ledger(
+        ledger_path,
+        {
+            **ledger,
+            "version": 1,
+            "updated_at": now_iso,
+            "total_after_baseline": total_after_ledger,
+            "songs": merged_ledger_records,
+        },
     )
-    existing_count = _data_row_count(existing_rows)
-    start_index = existing_count + 1
 
-    updates = []
-    updates.extend(_value_update("Song Library", f"A{start_index + 1}:J{start_index + len(selected)}", _song_library_rows(selected, start_index)))
-    updates.extend(_value_update("전체 곡명 Raw", f"A{start_index + 1}:I{start_index + len(selected)}", _all_title_rows(selected, start_index)))
-    updates.extend(_value_update("후크 멜로디 리듬 Raw", f"A{start_index + 1}:M{start_index + len(selected)}", _hook_rows(selected, start_index)))
-    updates.extend(_value_update("Chord Lyrics Raw", f"A{start_index + 1}:L{start_index + len(selected)}", _chord_lyric_rows(selected)))
-    updates.extend(_value_update("Producer Features Raw", f"A{start_index + 1}:J{start_index + len(selected)}", _producer_rows(selected)))
+    sheet_added_count = 0
+    if service is not None:
+        sheet_meta = service.spreadsheets().get(spreadsheetId=args.sheet_id).execute()
+        _ensure_sheets(
+            service,
+            args.sheet_id,
+            sheet_meta,
+            [
+                "전체 곡명 Raw",
+                "후크 멜로디 리듬 Raw",
+                "Chord Lyrics Raw",
+                "Producer Features Raw",
+                "연동 검증",
+                args.date + " 추천 정보",
+            ],
+        )
+        existing_count = _data_row_count(existing_rows)
+        sheet_existing_keys = _existing_song_keys(existing_rows)
+        missing_for_sheet = [row for row in merged_ledger_records if _record_key(row) not in sheet_existing_keys]
+        sheet_added_count = len(missing_for_sheet)
+        start_index = existing_count + 1
 
-    merged_rows = _existing_song_records(existing_rows) + selected
-    stats = _build_stats(merged_rows)
-    updates.extend(_value_update("Dashboard", "A1:F18", _dashboard_rows(stats, selected, args.date)))
-    updates.extend(_value_update("Statistics", "A1:D30", _statistics_rows(stats)))
-    updates.extend(_value_update("Genre Summary", "A1:F80", _genre_summary_rows(merged_rows)))
-    updates.extend(_value_update("[차트1] 장르별 곡 수 분포", "A1:B80", [["Genre", "Songs"], *stats["genre_counts"]]))
-    updates.extend(_value_update("Pattern Summaries", "A1:E12", _pattern_rows(stats)))
-    updates.extend(_value_update("연동 검증", "A1:D11", _validation_rows(stats)))
-    updates.extend(_value_update(args.date + " 추천 정보", "A1:F24", _recommendation_rows(stats, args.date)))
+        merged_rows = _dedupe_records(_existing_song_records(existing_rows) + missing_for_sheet)
+        stats = _build_stats(merged_rows)
+        updates = []
+        if missing_for_sheet:
+            updates.extend(_value_update("Song Library", f"A{start_index + 1}:K{start_index + len(missing_for_sheet)}", _song_library_rows(missing_for_sheet, start_index)))
+            updates.extend(_value_update("전체 곡명 Raw", f"A{start_index + 1}:I{start_index + len(missing_for_sheet)}", _all_title_rows(missing_for_sheet, start_index)))
+            updates.extend(_value_update("후크 멜로디 리듬 Raw", f"A{start_index + 1}:M{start_index + len(missing_for_sheet)}", _hook_rows(missing_for_sheet, start_index)))
+            updates.extend(_value_update("Chord Lyrics Raw", f"A{start_index + 1}:L{start_index + len(missing_for_sheet)}", _chord_lyric_rows(missing_for_sheet)))
+            updates.extend(_value_update("Producer Features Raw", f"A{start_index + 1}:J{start_index + len(missing_for_sheet)}", _producer_rows(missing_for_sheet)))
+        updates.extend(_value_update("Dashboard", "A1:F18", _dashboard_rows(stats, selected, args.date)))
+        updates.extend(_value_update("Statistics", "A1:D30", _statistics_rows(stats)))
+        updates.extend(_value_update("Genre Summary", "A1:F80", _genre_summary_rows(merged_rows)))
+        updates.extend(_value_update("[차트1] 장르별 곡 수 분포", "A1:B80", [["Genre", "Songs"], *stats["genre_counts"]]))
+        updates.extend(_value_update("Pattern Summaries", "A1:E12", _pattern_rows(stats)))
+        updates.extend(_value_update("연동 검증", "A1:D11", _validation_rows(stats)))
+        updates.extend(_value_update(args.date + " 추천 정보", "A1:F24", _recommendation_rows(stats, args.date)))
 
-    body = {"valueInputOption": "USER_ENTERED", "data": updates}
-    service.spreadsheets().values().batchUpdate(spreadsheetId=args.sheet_id, body=body).execute()
+        body = {"valueInputOption": "USER_ENTERED", "data": updates}
+        service.spreadsheets().values().batchUpdate(spreadsheetId=args.sheet_id, body=body).execute()
+        google_sheet_status = "updated" if sheet_added_count else "up_to_date"
 
     print(
         json.dumps(
             {
                 "added": [f"{row['title']} - {row['artist']}" for row in selected],
-                "total_after": len(merged_rows),
+                "ledger_total_after": total_after_ledger,
+                "ledger_path": _display_path(ledger_path),
+                "google_sheet_status": google_sheet_status,
+                "google_sheet_added_rows": sheet_added_count,
                 "low_confidence": [
                     f"{row['title']} - {row['artist']}: {row.get('data_confidence')}"
                     for row in selected
@@ -112,8 +163,34 @@ def _build_sheets_service() -> Any:
     return build("sheets", "v4", credentials=credentials, cache_discovery=False)
 
 
+def _has_google_credentials() -> bool:
+    return bool(os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON") or os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE"))
+
+
 def _load_queue() -> list[dict[str, Any]]:
     return json.loads(QUEUE_PATH.read_text(encoding="utf-8"))
+
+
+def _load_ledger(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"version": 1, "baseline": {"count": 0, "identity_hashes": []}, "songs": []}
+    ledger = json.loads(path.read_text(encoding="utf-8"))
+    ledger.setdefault("version", 1)
+    ledger.setdefault("baseline", {"count": 0, "identity_hashes": []})
+    ledger.setdefault("songs", [])
+    return ledger
+
+
+def _save_ledger(path: Path, ledger: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT_DIR))
+    except ValueError:
+        return str(path)
 
 
 def _read_values(service: Any, spreadsheet_id: str, range_name: str) -> list[list[Any]]:
@@ -135,28 +212,32 @@ def _ensure_sheets(service: Any, spreadsheet_id: str, metadata: dict[str, Any], 
 
 
 def _existing_song_keys(rows: list[list[Any]]) -> set[tuple[str, str]]:
+    title_index, artist_index = _song_library_title_artist_indices(rows)
     keys = set()
     for row in rows[1:]:
-        if len(row) < 3:
+        if len(row) <= max(title_index, artist_index):
             continue
-        keys.add((_normalize(row[1]), _normalize_artist(row[2])))
+        keys.add((_normalize(row[title_index]), _normalize_artist(row[artist_index])))
     return keys
 
 
 def _existing_song_records(rows: list[list[Any]]) -> list[dict[str, Any]]:
+    title_index, artist_index = _song_library_title_artist_indices(rows)
+    offset = 1 if title_index == 2 else 0
     records = []
     for row in rows[1:]:
-        if len(row) < 3:
+        if len(row) <= max(title_index, artist_index):
             continue
         records.append(
             {
-                "title": row[1] if len(row) > 1 else "",
-                "artist": row[2] if len(row) > 2 else "",
-                "genre": row[3] if len(row) > 3 else "Unknown",
-                "country": row[4] if len(row) > 4 else "",
-                "release_year": row[5] if len(row) > 5 else "",
-                "bpm": _to_float(row[6] if len(row) > 6 else None),
-                "key": row[7] if len(row) > 7 else "",
+                "added_date": row[1] if offset and len(row) > 1 else "",
+                "title": row[title_index] if len(row) > title_index else "",
+                "artist": row[artist_index] if len(row) > artist_index else "",
+                "genre": row[3 + offset] if len(row) > 3 + offset else "Unknown",
+                "country": row[4 + offset] if len(row) > 4 + offset else "",
+                "release_year": row[5 + offset] if len(row) > 5 + offset else "",
+                "bpm": _to_float(row[6 + offset] if len(row) > 6 + offset else None),
+                "key": row[7 + offset] if len(row) > 7 + offset else "",
                 "hook_type": "",
                 "chord_progression": "",
                 "data_confidence": "medium",
@@ -165,12 +246,60 @@ def _existing_song_records(rows: list[list[Any]]) -> list[dict[str, Any]]:
     return records
 
 
-def _select_unique(queue: list[dict[str, Any]], existing_keys: set[tuple[str, str]], batch_size: int) -> list[dict[str, Any]]:
+def _song_library_title_artist_indices(rows: list[list[Any]]) -> tuple[int, int]:
+    if rows:
+        header = [_normalize_header(cell) for cell in rows[0]]
+        if "addeddate" in header:
+            return 2, 3
+    return 1, 2
+
+
+def _record_key(row: dict[str, Any]) -> tuple[str, str]:
+    return (_normalize(row.get("title")), _normalize_artist(row.get("artist")))
+
+
+def _record_keys(rows: list[dict[str, Any]]) -> set[tuple[str, str]]:
+    return {_record_key(row) for row in rows if row.get("title")}
+
+
+def _identity_hash(title: Any, artist: Any) -> str:
+    key = f"{_normalize(title)}\0{_normalize_artist(artist)}"
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+
+def _ledger_song(row: dict[str, Any], added_date: str, added_at: str) -> dict[str, Any]:
+    return {
+        **row,
+        "added_date": added_date,
+        "added_at": added_at,
+        "source_type": "github_actions_cloud_reference",
+    }
+
+
+def _dedupe_records(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen = set()
+    deduped = []
+    for row in rows:
+        key = _record_key(row)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(row)
+    return deduped
+
+
+def _select_unique(
+    queue: list[dict[str, Any]],
+    existing_keys: set[tuple[str, str]],
+    existing_hashes: set[str],
+    batch_size: int,
+) -> list[dict[str, Any]]:
     selected = []
     selected_keys = set()
     for row in queue:
         key = (_normalize(row.get("title")), _normalize_artist(row.get("artist")))
-        if key in existing_keys or key in selected_keys:
+        identity_hash = _identity_hash(row.get("title"), row.get("artist"))
+        if key in existing_keys or key in selected_keys or identity_hash in existing_hashes:
             continue
         selected.append(row)
         selected_keys.add(key)
@@ -180,13 +309,15 @@ def _select_unique(queue: list[dict[str, Any]], existing_keys: set[tuple[str, st
 
 
 def _data_row_count(rows: list[list[Any]]) -> int:
-    return max(0, sum(1 for row in rows[1:] if len(row) >= 3 and row[1]))
+    title_index, _ = _song_library_title_artist_indices(rows)
+    return max(0, sum(1 for row in rows[1:] if len(row) > title_index and row[title_index]))
 
 
 def _song_library_rows(songs: list[dict[str, Any]], start_index: int) -> list[list[Any]]:
     return [
         [
             start_index + i,
+            song.get("added_date", ""),
             song["title"],
             song["artist"],
             song["genre"],
@@ -194,7 +325,7 @@ def _song_library_rows(songs: list[dict[str, Any]], start_index: int) -> list[li
             song["release_year"],
             song["bpm"],
             song["key"],
-            "cloud_curated_reference",
+            song.get("source_type", "cloud_curated_reference"),
             "cloud batch, unique real hit, no YouTube audio extraction",
         ]
         for i, song in enumerate(songs)
@@ -417,6 +548,10 @@ def _normalize(value: Any) -> str:
     text = re.sub(r"\[[^\]]*(remaster|official|music video|lyric|lyrics|live|cover|mv|4k|hd|ver\.?|version)[^\]]*\]", " ", text)
     text = re.sub(r"\([^\)]*(remaster|official|music video|lyric|lyrics|live|cover|mv|4k|hd|ver\.?|version)[^\)]*\)", " ", text)
     return re.sub(r"[^0-9a-z가-힣]+", "", text)
+
+
+def _normalize_header(value: Any) -> str:
+    return re.sub(r"[^0-9a-z]+", "", str(value or "").casefold())
 
 
 def _normalize_artist(value: Any) -> str:

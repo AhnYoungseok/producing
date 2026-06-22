@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: hit-song-lab-cloud-batch
@@ -38,5 +38,17 @@ jobs:
       - name: Install cloud batch dependencies
         run: python -m pip install -r backend/requirements-cloud.txt
 
-      - name: Add 10 unique reference songs to Google Sheets
+      - name: Add 10 unique reference songs to cloud ledger and Google Sheets when configured
         run: python backend/scripts/cloud_hit_song_batch.py --batch-size 10
+
+      - name: Commit cloud ledger
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cloud_ledger/song_library.json
+          if git diff --cached --quiet; then
+            echo "No cloud ledger changes to commit."
+          else
+            git commit -m "Update cloud song ledger"
+            git push
+          fi
