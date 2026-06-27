@@ -1,5 +1,45 @@
 # Changelog
 
+## 2026-06-28
+
+### Fixed
+
+- Rebuilt Composer Coach concept flow around structured archetypes, reset support, concept-aware reference matching, and harmony briefs that vary from the matched reference statistics.
+- Changed the default auto-reference batch settings to safe development defaults: disabled and no startup run unless explicitly enabled by environment variables.
+- Replaced broken Hook Lab UI copy and backend Hook Lab fallback strings so loading, error, empty, search, filter, confidence, and pagination states are readable.
+- Replaced the frontend API fallback error message with a stable readable message.
+- Updated stale project docs that still described Hook Lab as per-song analysis fetching and auto batch as enabled by default.
+
+### Added
+
+- Added Composer Coach hook-melody sketches directly under the lyric hook examples, with three generated contour/rhythm variants and browser Web Audio playback for quick auditioning.
+- Added `POST /api/composer/{project_id}/reset` to restart the Composer Coach concept flow without manually editing the database.
+- Added and tested the bulk Hook Lab summary response shape for `GET /api/library/hook-summaries`, including country, year, BPM, key, hook cue/type/location, melody summaries, lyrics source status, confidence, and updated timestamps.
+- Added a Hook Lab endpoint structure test for the bulk summary payload.
+- Added Hook Lab client-side search, genre filtering, confidence filtering, pagination, selected-reference count, and direct YouTube search links.
+- Added recommendation harmony statistics so Composer Coach can use selected/recommended songs' verse, pre-chorus, chorus, and bridge progressions instead of repeating a fixed fallback.
+
+### Changed
+
+- Upgraded the public-site concept finder from a single coarse persona label into an 8-axis visual persona model with detailed subtype codes, coordinate map, score bars, rationale notes, and nearest archetype ranking.
+- Strengthened source-safe harmony, melody, and hook analyzers so user-provided chords/lyrics produce detailed section functions, tension/release notes, reharmonization options, hook design, melody contour/rhythm summaries, and explicit confidence/source labels without using YouTube audio extraction.
+- Updated Hook Lab so it loads reference summaries through one bulk API call instead of relying on per-song analysis requests.
+- Expanded confidence metadata for local and cloud/ledger hook summaries while preserving legacy field names for compatibility.
+- Reworked Composer Coach so the creation brief is the most prominent section, with practical concept, structure, harmony, hook, arrangement, vocal, and plagiarism-prevention guidance.
+- Updated Composer Coach harmony options and the creation brief to prioritize reference-song chord statistics, then transform them with slash chords, secondary dominants, modal interchange, sus/add9 voicings, and new bass motion.
+- Changed the public-site harmony brief generator so it selects distinct harmony palettes from concept axes, sound lane, BPM/genre signals, and available chord samples instead of repeating one fixed G major / E minor fallback.
+- Added K-pop/global groove harmony detection so Korean pop hooks, post-chorus/performance hooks, drum grooves, and bass/synth references produce dedicated F/D minor or Ab/F minor progression plans instead of falling back to the generic ballad template.
+- Replaced broken Korean UI copy in Hook Lab and Composer Coach with clear Korean workflow/status text.
+
+### Verified
+
+- Backend tests passed with `AUTO_REFERENCE_BATCH_ENABLED=false`: 27 tests.
+- Backend tests passed with `AUTO_REFERENCE_BATCH_ENABLED=false`: 28 tests after Composer reset/concept updates.
+- Frontend `npm run lint` passed.
+- Frontend `npm run build` passed.
+- FastAPI server started successfully on port 8110 with auto batch disabled.
+- HTTP checks passed for `/docs`, `/api/research/auto-batch/status`, `/api/library/hook-summaries`, bad song ID 404, and main frontend routes.
+
 ## 2026-06-22
 
 ### Added
@@ -39,4 +79,4 @@
 
 - Automatic lyrics collection was not added. Full lyrics must be user-provided.
 - YouTube audio extraction remains explicitly unsupported and forbidden.
-- The current folder is not initialized as a git repository; `git status` reports that there is no `.git` directory.
+- Older note: this folder was previously not initialized as a git repository. It is now on branch `main` in the checked workspace.

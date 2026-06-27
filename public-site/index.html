@@ -446,6 +446,135 @@
         gap: 6px;
       }
 
+      .persona-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .persona-map {
+        position: relative;
+        min-height: 170px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background:
+          linear-gradient(90deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) calc(50% + 1px), transparent calc(50% + 1px)),
+          linear-gradient(0deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) calc(50% + 1px), transparent calc(50% + 1px)),
+          #fbfdff;
+      }
+
+      .persona-map-label {
+        position: absolute;
+        color: var(--quiet);
+        font-size: 10px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .persona-map-label.top {
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .persona-map-label.bottom {
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .persona-map-label.left {
+        top: 50%;
+        left: 8px;
+        transform: translateY(-50%);
+      }
+
+      .persona-map-label.right {
+        top: 50%;
+        right: 8px;
+        transform: translateY(-50%);
+      }
+
+      .persona-dot {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #fff;
+        border-radius: 999px;
+        background: var(--teal);
+        box-shadow: 0 6px 18px rgba(14, 116, 144, 0.28);
+        transform: translate(-50%, -50%);
+      }
+
+      .persona-axis-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      .axis-row {
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr) 32px;
+        gap: 7px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 850;
+      }
+
+      .axis-track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e5edf1;
+      }
+
+      .axis-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--teal), #22c55e);
+      }
+
+      .persona-table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 8px;
+        font-size: 11px;
+      }
+
+      .persona-table th,
+      .persona-table td {
+        border-bottom: 1px solid var(--line);
+        padding: 7px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .persona-table th {
+        color: var(--quiet);
+        font-size: 10px;
+        font-weight: 950;
+        text-transform: uppercase;
+      }
+
+      .persona-rationale {
+        display: grid;
+        gap: 6px;
+      }
+
+      .persona-rationale div {
+        border-left: 3px solid var(--teal);
+        padding: 6px 8px;
+        border-radius: 0 6px 6px 0;
+        background: #fbfdff;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 750;
+        line-height: 1.4;
+      }
+
       .input-label {
         display: grid;
         gap: 6px;
@@ -995,7 +1124,8 @@
 
         .detail-grid,
         .action-row,
-        .concept-grid {
+        .concept-grid,
+        .persona-grid {
           grid-template-columns: 1fr;
         }
 
@@ -1332,6 +1462,117 @@
           options: ["한 단어 제목", "문장형 제목", "질문형 제목", "장소 제목", "시간 제목", "반어적 제목"],
         },
       ];
+
+      const conceptAxes = [
+        { id: "maturity", label: "성숙도", low: "젊은 직진", high: "성숙한 회상" },
+        { id: "directness", label: "직접성", low: "은유/침묵", high: "고백/선언" },
+        { id: "recovery", label: "회복성", low: "상처 정체", high: "다시 일어남" },
+        { id: "longing", label: "미련감", low: "해방", high: "붙잡음" },
+        { id: "dignity", label: "품격", low: "노출/폭발", high: "절제/품위" },
+        { id: "energy", label: "에너지", low: "저온 독백", high: "큰 코러스" },
+        { id: "experimentation", label: "실험성", low: "클래식", high: "하이브리드" },
+        { id: "market", label: "시장성", low: "사적 장면", high: "히트 문법" },
+      ];
+
+      const conceptAxisWeights = {
+        "20대의 직진성": { maturity: -24, directness: 18, energy: 18, market: 10 },
+        "30대의 현실감": { maturity: 4, directness: 4, dignity: 6, market: 8 },
+        "40대의 여운": { maturity: 18, longing: 14, dignity: 10, energy: -8 },
+        "50대의 품격": { maturity: 26, dignity: 24, directness: -8, energy: -10 },
+        "늦게 피어난 사람": { maturity: 12, recovery: 22, energy: 8 },
+        "조용히 뜨거운 사람": { maturity: 10, dignity: 12, directness: -6, energy: 8 },
+        "차분하지만 깊음": { maturity: 12, dignity: 14, energy: -6 },
+        "집요한 서정성": { longing: 18, dignity: 8, directness: -4 },
+        "담담한 체념": { maturity: 14, dignity: 18, recovery: -6, energy: -12 },
+        "유머 뒤 외로움": { directness: -12, longing: 10, experimentation: 10, market: 8 },
+        "단단한 자기고백": { directness: 20, recovery: 14, energy: 12 },
+        "다정한 거리감": { dignity: 14, directness: -6, maturity: 8 },
+        "속은 뜨거움": { energy: 16, longing: 8, directness: -2 },
+        "미련": { longing: 24, recovery: -8 },
+        "회복": { recovery: 28, dignity: 6 },
+        "늦은 깨달음": { maturity: 20, longing: 12, directness: 6 },
+        "고백": { directness: 24, energy: 8 },
+        "후회": { maturity: 14, longing: 20, dignity: 8 },
+        "해방감": { recovery: 16, longing: -18, energy: 18 },
+        "그리움": { longing: 22, energy: -8 },
+        "다시 시작": { recovery: 24, energy: 10 },
+        "설렘": { energy: 14, recovery: 8, maturity: -8 },
+        "외로움": { longing: 10, directness: -8, energy: -10 },
+        "비 오는 밤": { longing: 12, directness: -8, energy: -10 },
+        "헤어진 뒤 첫 아침": { recovery: 8, longing: 14, maturity: 8 },
+        "오래된 메시지": { longing: 20, maturity: 8 },
+        "집 앞 골목": { directness: -4, energy: -8, maturity: 4 },
+        "여행 끝": { recovery: 10, longing: -4, energy: 4 },
+        "출근길 혼잣말": { maturity: 8, directness: -6, market: 4 },
+        "계절이 바뀜": { maturity: 10, recovery: 8, longing: 8 },
+        "무대 위 고백": { directness: 20, energy: 20, market: 14 },
+        "떠난 사람": { longing: 16, dignity: 8 },
+        "아직 못 보낸 사람": { longing: 24, recovery: -8 },
+        "오래된 친구": { maturity: 8, dignity: 12, directness: -4 },
+        "새로 만난 사람": { recovery: 8, energy: 10, maturity: -6 },
+        "나 자신": { recovery: 14, directness: 6 },
+        "가족과 시간": { maturity: 22, dignity: 14, longing: 10 },
+        "붙잡는 사람": { longing: 22, directness: 8 },
+        "놓아주는 사람": { dignity: 22, maturity: 12, longing: -4 },
+        "돌아보는 사람": { maturity: 14, longing: 16 },
+        "먼저 떠나는 사람": { recovery: 12, longing: -10, energy: 12 },
+        "기다리는 사람": { longing: 22, energy: -12 },
+        "다시 믿는 사람": { recovery: 18, directness: 6 },
+        "인정받고 싶음": { directness: 8, energy: 10, market: 8 },
+        "아무렇지 않아 보이고 싶음": { directness: -14, dignity: 8, longing: 8 },
+        "사랑받고 싶음": { directness: 8, longing: 8 },
+        "자유롭고 싶음": { recovery: 10, longing: -14, energy: 12 },
+        "늦게라도 말하고 싶음": { directness: 18, maturity: 12 },
+        "무너지지 않고 싶음": { recovery: 20, dignity: 10 },
+        "가볍게 웃고 싶음": { market: 10, energy: 10, directness: -6 },
+        "다시 시작하고 싶음": { recovery: 24, energy: 8 },
+        "버려진 기억": { longing: 18, recovery: -8 },
+        "타이밍의 어긋남": { longing: 18, maturity: 8 },
+        "말하지 못한 진심": { directness: -6, longing: 18 },
+        "반복된 실망": { maturity: 8, recovery: -10, dignity: 6 },
+        "혼자 견딘 시간": { recovery: 14, maturity: 12, dignity: 10 },
+        "늦어진 꿈": { recovery: 16, energy: 10 },
+        "익숙한 관계의 균열": { maturity: 10, dignity: 8, longing: 10 },
+        "사라진 계절감": { maturity: 12, longing: 18 },
+        "붙잡음": { longing: 18, directness: 10 },
+        "침묵": { directness: -18, dignity: 12, energy: -12 },
+        "농담으로 회피": { directness: -16, experimentation: 12, market: 8 },
+        "직진 고백": { directness: 24, energy: 10 },
+        "품위 있게 물러남": { dignity: 26, maturity: 14, longing: -4 },
+        "마지막 확인": { directness: 10, longing: 10 },
+        "스스로 설득": { recovery: 12, maturity: 8, directness: -4 },
+        "폭발 후 정리": { energy: 22, recovery: 12, dignity: -8 },
+        "피아노 발라드": { maturity: 10, dignity: 12, energy: -8 },
+        "어쿠스틱 팝": { dignity: 6, energy: -2, market: 4 },
+        "90-110 BPM 미드템포": { market: 8, energy: 4 },
+        "120 BPM 댄스팝": { energy: 24, market: 18, maturity: -8 },
+        "R&B 팝": { experimentation: 8, market: 10 },
+        "K-pop 글로벌": { market: 22, energy: 12, experimentation: 8 },
+        "J-pop 발라드": { longing: 12, maturity: 8, market: 8 },
+        "J-rock 팝": { energy: 18, experimentation: 10 },
+        "city pop 감성": { longing: 10, experimentation: 8, energy: -2 },
+        "country-pop": { recovery: 8, market: 12 },
+        "synth soft pop": { experimentation: 12, market: 10 },
+        "재즈 스탠더드": { maturity: 18, dignity: 20, experimentation: 12, market: -4 },
+        "재즈 발라드": { maturity: 20, dignity: 22, energy: -12 },
+        "스윙/빅밴드": { energy: 10, experimentation: 12, dignity: 8 },
+        "보사노바": { dignity: 14, energy: -6, experimentation: 10 },
+        "소울 재즈": { maturity: 16, directness: 8, dignity: 14 },
+        "짧은 제목 큐": { market: 18, directness: 8 },
+        "첫 45초 안 훅": { market: 22, energy: 8 },
+        "포스트훅 반복": { market: 20, energy: 14 },
+        "숏폼 한 장면": { market: 18, experimentation: 6 },
+        "장르 혼합": { experimentation: 24, market: 10 },
+        "낮은 벌스/큰 코러스": { energy: 20, directness: 10, market: 12 },
+        "말하듯 시작": { directness: 4, maturity: 8, energy: -4 },
+        "마지막 코러스 확장": { energy: 16, market: 10 },
+        "한 단어 제목": { market: 12, directness: 6 },
+        "문장형 제목": { directness: 10, maturity: 6 },
+        "질문형 제목": { directness: 4, longing: 6 },
+        "장소 제목": { maturity: 8, longing: 8 },
+        "시간 제목": { maturity: 10, longing: 12 },
+        "반어적 제목": { experimentation: 14, directness: -8, market: 8 },
+      };
 
       const archetypeRules = [
         {
@@ -2233,12 +2474,79 @@
         return normalize(text).includes(normalize(term));
       }
 
+      function clamp(value, min = 0, max = 100) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function conceptAxisScores() {
+        const scores = Object.fromEntries(conceptAxes.map((axis) => [axis.id, 50]));
+        selectedConceptLabels().forEach((label) => {
+          const weights = conceptAxisWeights[label] || {};
+          Object.entries(weights).forEach(([axis, delta]) => {
+            scores[axis] = clamp((scores[axis] ?? 50) + Number(delta || 0));
+          });
+        });
+        const manualText = normalize(`${$("conceptInput")?.value || ""} ${$("ideaInput")?.value || ""}`);
+        if (manualText.includes("재즈")) scores.experimentation = clamp(scores.experimentation + 10);
+        if (manualText.includes("발라드")) scores.energy = clamp(scores.energy - 6);
+        if (manualText.includes("고백")) scores.directness = clamp(scores.directness + 10);
+        if (manualText.includes("회복")) scores.recovery = clamp(scores.recovery + 10);
+        return scores;
+      }
+
+      function axisBand(value, low, mid, high) {
+        if (value >= 68) return high;
+        if (value <= 36) return low;
+        return mid;
+      }
+
+      function detailedPersonaCode(axes, archetype) {
+        const parts = [
+          axes.maturity >= 64 ? "M+" : axes.maturity <= 38 ? "Y+" : "M0",
+          axes.directness >= 64 ? "D+" : axes.directness <= 38 ? "I+" : "D0",
+          axes.recovery >= 64 ? "R+" : axes.recovery <= 38 ? "W+" : "R0",
+          axes.energy >= 64 ? "E+" : axes.energy <= 38 ? "L+" : "E0",
+          axes.experimentation >= 64 ? "X+" : "C+",
+        ];
+        return `${archetype.code}-${parts.join("")}`;
+      }
+
+      function detailedPersonaName(axes, archetype) {
+        const maturity = axisBand(axes.maturity, "젊은", "현실적인", "성숙한");
+        const directness = axisBand(axes.directness, "말을 아끼는", "조심스레 말하는", "정확히 고백하는");
+        const recovery = axisBand(axes.recovery, "상처에 머문", "버티는", "다시 일어서는");
+        const energy = axisBand(axes.energy, "저온", "중온", "큰 코러스");
+        return `${maturity} ${directness} ${recovery} ${energy} ${archetype.name}`;
+      }
+
+      function axisRationale(axes, matched, archetype) {
+        const sortedAxes = conceptAxes
+          .map((axis) => ({ ...axis, value: axes[axis.id] ?? 50 }))
+          .sort((a, b) => Math.abs(b.value - 50) - Math.abs(a.value - 50))
+          .slice(0, 4);
+        return [
+          `핵심 판정: ${archetype.name}은 선택값 ${matched.length}개와 가장 많이 겹칩니다.`,
+          ...sortedAxes.map((axis) => `${axis.label} ${axis.value}: ${axis.value >= 50 ? axis.high : axis.low} 쪽으로 기웁니다.`),
+        ];
+      }
+
       function resolveArchetype() {
         const seed = conceptSeedText();
         const normalizedSeed = normalize(seed);
         const fallback = archetypeRules.find((rule) => rule.code === "IN") || archetypeRules[0];
+        const axes = conceptAxisScores();
         if (!normalizedSeed) {
-          return { ...fallback, score: 0, matched: [], confidence: "선택 전" };
+          return {
+            ...fallback,
+            score: 0,
+            matched: [],
+            confidence: "선택 전",
+            axes,
+            ranked: [],
+            detailedCode: detailedPersonaCode(axes, fallback),
+            detailedName: "선택 전 · 화자/감정/상황을 먼저 고르세요.",
+            rationale: ["아직 선택값이 없어 기본 관찰자형으로 대기 중입니다."],
+          };
         }
         const ranked = archetypeRules
           .map((rule) => {
@@ -2247,12 +2555,30 @@
             rule.songTerms.forEach((term) => {
               if (termHit(seed, term)) score += 4;
             });
+            if (axes.maturity >= 66 && /어른|품격|후회|재즈|클래식|작별/.test(rule.name + rule.brief)) score += 9;
+            if (axes.directness >= 66 && /고백|직진|선언|무대/.test(rule.name + rule.brief)) score += 9;
+            if (axes.directness <= 38 && /침묵|관찰|농담|거리|독백/.test(rule.name + rule.brief)) score += 8;
+            if (axes.recovery >= 66 && /회복|다시|해방|승리|시작/.test(rule.name + rule.brief)) score += 9;
+            if (axes.longing >= 66 && /회상|미련|기다|그리움|시간/.test(rule.name + rule.brief)) score += 8;
+            if (axes.dignity >= 66 && /품격|담담|절제|거리|작별|재즈/.test(rule.name + rule.brief)) score += 9;
+            if (axes.energy >= 66 && /코러스|무대|댄스|폭발|선언|록/.test(rule.name + rule.brief)) score += 8;
+            if (axes.experimentation >= 66 && /장르|재즈|반어|리듬|실험|신스/.test(rule.name + rule.brief)) score += 8;
+            if (axes.market >= 66 && /글로벌|K-pop|후크|제목|팝|무대/.test(rule.name + rule.brief)) score += 7;
             return { ...rule, score, matched };
           })
           .sort((a, b) => b.score - a.score || b.matched.length - a.matched.length);
         const best = ranked[0] || fallback;
-        const confidence = best.score >= 48 ? "높음" : best.score >= 24 ? "중간" : "낮음";
-        return { ...best, confidence };
+        const coverage = conceptCategories.filter((category) => selectedConceptLabels(category.id).length).length;
+        const confidence = best.score >= 72 && coverage >= 7 ? "높음" : best.score >= 36 && coverage >= 4 ? "중간" : "낮음";
+        return {
+          ...best,
+          confidence,
+          axes,
+          ranked: ranked.slice(0, 4),
+          detailedCode: detailedPersonaCode(axes, best),
+          detailedName: detailedPersonaName(axes, best),
+          rationale: axisRationale(axes, best.matched || [], best),
+        };
       }
 
       function conceptSearchTerms(archetype = resolveArchetype()) {
@@ -2519,8 +2845,41 @@
 
       function renderArchetypePanel() {
         const archetype = resolveArchetype();
+        const axes = archetype.axes || conceptAxisScores();
+        const mapX = clamp(axes.directness || 50, 8, 92);
+        const mapY = clamp(100 - (axes.energy || 50), 8, 92);
+        const axisRows = conceptAxes
+          .map((axis) => {
+            const value = Math.round(axes[axis.id] ?? 50);
+            return `
+              <div class="axis-row">
+                <span>${escapeHtml(axis.label)}</span>
+                <span class="axis-track"><span class="axis-fill" style="width:${value}%"></span></span>
+                <span>${value}</span>
+              </div>
+            `;
+          })
+          .join("");
+        const nearby = (archetype.ranked || [])
+          .slice(0, 4)
+          .map((item, index) => {
+            const match = (item.matched || []).slice(0, 3).join(" / ") || "축 점수 근접";
+            return `
+              <tr>
+                <td>${index + 1}</td>
+                <td><strong>${escapeHtml(item.name)}</strong><br><span class="archetype-detail">${escapeHtml(item.code)}</span></td>
+                <td>${Math.round(item.score || 0)}</td>
+                <td>${escapeHtml(match)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        const rationale = (archetype.rationale || [])
+          .map((item) => `<div>${escapeHtml(item)}</div>`)
+          .join("");
         const tags = [
-          `유형 ${archetype.code}`,
+          `기본 ${archetype.code}`,
+          `세부 ${archetype.detailedCode || archetype.code}`,
           `판정 ${archetype.confidence}`,
           ...(archetype.matched || []).slice(0, 4),
         ]
@@ -2528,10 +2887,27 @@
           .join("");
         $("archetypeCard").innerHTML = `
           <div class="concept-selection-title">인간상 유형</div>
-          <div class="archetype-name">${escapeHtml(archetype.name)}</div>
+          <div class="archetype-name">${escapeHtml(archetype.detailedName || archetype.name)}</div>
           <div class="archetype-detail">${escapeHtml(archetype.brief)}</div>
           <div class="archetype-detail">${escapeHtml(archetype.voice)}</div>
           <div class="archetype-tags">${tags}</div>
+          <div class="persona-grid">
+            <div class="persona-map" aria-label="컨셉 좌표">
+              <span class="persona-map-label top">큰 코러스</span>
+              <span class="persona-map-label bottom">저온 독백</span>
+              <span class="persona-map-label left">은유/침묵</span>
+              <span class="persona-map-label right">고백/선언</span>
+              <span class="persona-dot" style="left:${mapX}%; top:${mapY}%"></span>
+            </div>
+            <div class="persona-axis-list">${axisRows}</div>
+          </div>
+          <div class="persona-rationale">${rationale}</div>
+          <table class="persona-table">
+            <thead>
+              <tr><th>#</th><th>근접 유형</th><th>점수</th><th>근거</th></tr>
+            </thead>
+            <tbody>${nearby || `<tr><td colspan="4">선택값을 더 고르면 근접 유형이 표시됩니다.</td></tr>`}</tbody>
+          </table>
         `;
       }
 
@@ -2657,9 +3033,15 @@
         const direction = conceptDirection(songs);
         const stats = referenceStats(songs);
         const references = songs.slice(0, 5).map((song) => `${song.title} - ${song.artist}`).join(" / ");
+        const axes = direction.archetype.axes || conceptAxisScores();
+        const leadingAxes = conceptAxes
+          .map((axis) => `${axis.label} ${Math.round(axes[axis.id] ?? 50)}`)
+          .slice(0, 4)
+          .join(" / ");
         return [
           `선택 조합: ${selectedLine || "도형을 눌러 화자, 감정, 상황, 사운드를 먼저 고르세요."}`,
-          `인간상 유형: ${direction.archetype.name} (${direction.archetype.code}) · ${direction.archetype.brief}`,
+          `인간상 유형: ${direction.archetype.detailedName || direction.archetype.name} (${direction.archetype.detailedCode || direction.archetype.code}) · ${direction.archetype.brief}`,
+          `성향 좌표: ${leadingAxes}. 좌표와 막대가 한쪽으로 기울수록 브리프도 더 강하게 그 방향으로 잡힙니다.`,
           `화자 질문: ${profile ? `${profile}의 사람은 어떤 욕망을 숨기고 어떤 상처를 처리하는가?` : "화자/성정/애착/결핍을 고르면 유형이 더 정확해집니다."}`,
           `한 줄 약속: ${concept || idea || selectedLine || "선택한 도형들이 자동으로 한 줄 컨셉이 됩니다."}`,
           `추천 방향: ${direction.lane}. 제목 감각은 ${direction.titleShape}.`,
@@ -2734,6 +3116,14 @@
         const stats = referenceStats(songs);
         const trendLine = trendHints.slice(0, 3).join(" ");
         const seed = concept || selectedLine || idea || "선택 전";
+        const axes = direction.archetype.axes || conceptAxisScores();
+        const axisSummary = conceptAxes
+          .map((axis) => `  - ${axis.label}: ${Math.round(axes[axis.id] ?? 50)} (${(axes[axis.id] ?? 50) >= 50 ? axis.high : axis.low})`)
+          .join("\n");
+        const nearbySummary = (direction.archetype.ranked || [])
+          .slice(0, 3)
+          .map((item, index) => `  ${index + 1}. ${item.name} ${Math.round(item.score || 0)}점 - ${(item.matched || []).slice(0, 3).join(" / ") || "축 점수 근접"}`)
+          .join("\n");
         const selectedGroups = conceptCategories
           .map((category) => {
             const labels = selectedConceptLabels(category.id);
@@ -2760,9 +3150,14 @@
           adaptiveRecommendationBlock(songs),
           "",
           "[컨셉 먼저]",
-          `- 인간상 유형: ${direction.archetype.name} (${direction.archetype.code}, 판정 ${direction.archetype.confidence})`,
+          `- 인간상 유형: ${direction.archetype.detailedName || direction.archetype.name}`,
+          `- 유형 코드: ${direction.archetype.detailedCode || direction.archetype.code} / 기본 ${direction.archetype.code} / 판정 ${direction.archetype.confidence}`,
           `- 유형 정의: ${direction.archetype.brief}`,
           `- 말투/태도: ${direction.archetype.voice}`,
+          "- 성향축 점수:",
+          axisSummary,
+          "- 근접 유형 후보:",
+          nearbySummary || "  - 선택값을 더 넣으면 후보가 정교해집니다.",
           `- 한 줄 컨셉: ${seed}`,
           `- 선택한 도형:`,
           selectedGroups || "  - 아직 선택 전. 화자, 감정, 상황, 사운드부터 고르세요.",
@@ -2808,8 +3203,18 @@
         if (keys.length) return `${shortList(keys, 3)} 중 보컬 레인지에 맞춰 조옮김`;
         const dominantGenre = normalize(commonValue(songs, (song) => song.genre));
         const avg = averageBpmNumber(songs);
+        const axes = conceptAxisScores();
+        const sound = normalize(selectedConceptLabels("sound").join(" "));
+        const signal = harmonicReferenceSignal(songs);
+        if (sound.includes("재즈") || dominantGenre.includes("jazz")) return "Eb major / C minor 또는 F major / D minor";
+        if (sound.includes("j-pop") || dominantGenre.includes("japanese")) return "E major / C# minor 또는 A major / F# minor";
+        if (sound.includes("k-pop") || signal.kpop || signal.groove) return "F major / D minor 또는 Ab major / F minor";
+        if (sound.includes("r&b")) return "Db major / Bb minor 또는 Ab major / F minor";
+        if (sound.includes("댄스") || (avg && avg >= 118)) return "F major / D minor 또는 A minor 중심";
+        if (axes.dignity >= 70 || axes.maturity >= 72) return "Bb major / G minor 또는 Eb major / C minor";
+        if (axes.recovery >= 70) return "D major / B minor 또는 A major / F# minor";
         if (dominantGenre.includes("ballad") || dominantGenre.includes("soft") || (avg && avg < 95)) {
-          return "G major / E minor 또는 C major / A minor";
+          return "C major / A minor 또는 Bb major / G minor";
         }
         return "C major / A minor 또는 F major / D minor";
       }
@@ -2872,54 +3277,300 @@
         ].join("\n");
       }
 
-      function harmonicBlueprint(songs) {
-        const dominantGenre = normalize(commonValue(songs, (song) => song.genre));
+      function sourceChordSamples(songs) {
+        return songs
+          .map((song) => String(song.chord_progression || "").trim())
+          .filter((value) => value && value.toLowerCase() !== "null")
+          .slice(0, 5);
+      }
+
+      function harmonicReferenceSignal(songs) {
+        const body = normalize(
+          songs
+            .map((song) =>
+              [
+                song.genre,
+                song.country,
+                song.chart_source,
+                song.source_type,
+                song.hook_type,
+                song.hook_location,
+                song.arrangement_build,
+                song.hit_factor,
+                song.producer_takeaway,
+              ].join(" ")
+            )
+            .join(" ")
+        );
+        return {
+          kpop:
+            body.includes("k-pop") ||
+            body.includes("korean pop") ||
+            body.includes("korea") ||
+            body.includes("한국") ||
+            body.includes("point choreography") ||
+            body.includes("post-chorus") ||
+            body.includes("performance hook"),
+          groove:
+            body.includes("drum groove") ||
+            body.includes("bass/synth") ||
+            body.includes("synth motif") ||
+            body.includes("groove") ||
+            body.includes("dry rhythmic vocal"),
+          ballad: body.includes("ballad") || body.includes("piano") || body.includes("strings"),
+        };
+      }
+
+      function harmonySignature(songs) {
+        const archetype = resolveArchetype();
+        const axes = archetype.axes || conceptAxisScores();
+        const sound = normalize(selectedConceptLabels("sound").join(" "));
+        const trend = normalize(selectedConceptLabels("trend").join(" "));
+        const titleShape = normalize(selectedConceptLabels("title").join(" "));
         const avg = averageBpmNumber(songs);
-        const isSoft = dominantGenre.includes("ballad") || dominantGenre.includes("soft") || (avg && avg < 95);
+        const genre = normalize(commonValue(songs, (song) => song.genre));
+        const signal = harmonicReferenceSignal(songs);
+        if (hasJazzReference(songs) || sound.includes("재즈")) return "jazz";
+        if (sound.includes("댄스") || genre.includes("dance") || (avg && avg >= 118)) return "dance";
+        if (sound.includes("r&b") || genre.includes("r&b") || genre.includes("soul")) return "rnb";
+        if (sound.includes("k-pop") || signal.kpop || (signal.groove && axes.market >= 55)) return "kpop";
+        if (sound.includes("j-pop") || genre.includes("japanese") || archetype.code === "JP") return "jpop";
+        if (trend.includes("장르 혼합") || axes.experimentation >= 70) return "hybrid";
+        if (axes.dignity >= 72 || axes.maturity >= 74 || archetype.code === "EP") return "dignified";
+        if (axes.recovery >= 70 && axes.longing < 62) return "recovery";
+        if (axes.directness >= 68 || titleShape.includes("문장형")) return "confession";
+        if (axes.longing >= 70) return "longing";
+        return "lyrical";
+      }
+
+      function harmonyPalette(songs) {
+        const signature = harmonySignature(songs);
+        const samples = sourceChordSamples(songs);
+        const sampleNote = samples.length
+          ? `선택곡 코드 표본 ${samples.length}개를 기능 단위로 일반화합니다: ${samples.join(" / ")}`
+          : "선택곡에 검증된 코드가 부족하므로 컨셉축과 장르 통계로 새 곡용 진행을 생성합니다.";
+        const palettes = {
+          dignified: {
+            name: "절제된 어른 발라드",
+            key: "Bb major / G minor",
+            goal: "Imaj9, vi9, IVmaj7, ii7-V7을 뼈대로 두고 borrowed iv와 slash bass로 품격 있게 눌러줍니다.",
+            aTitle: "A안: Bb major 기준 품격 있는 피아노 발라드",
+            verse: ["| Bbmaj9 | F/A | Gm9 | Ebmaj7 |", "| Cm9 | F7sus4 - F7 | Dm7 G7(b9) | Cm9 - F13 |"],
+            verseRole: "Imaj9 - V6 - vi9 - IVmaj7 - ii9 - V7sus - iii7/VI7 - ii9/V13. 말은 낮게 두고 베이스만 Bb-A-G-Eb로 움직입니다.",
+            pre: ["| Gm9 | Ebmaj7 | Bb/F | F/A |", "| Cm9 | D7/F# | Gm9 - F/A | Bbsus4 - Bb |"],
+            preRole: "vi9 - IVmaj7 - I64 - V6 - ii9 - V/vi - vi9/V6 - Isus4/I. D7/F#가 늦은 깨달음의 압력입니다.",
+            chorus: ["| Ebmaj9 | Bb/D | Cm9 | F7sus4 - F7 |", "| Bbmaj9 | F/A | Gm9 | Ebmaj9 - F13 |"],
+            chorusRole: "IVmaj9에서 열어 감정을 바로 해결하지 않고, 5마디 Bbmaj9에서 제목을 정리합니다.",
+            bridge: ["| Gm9 | Ebm6 | Bb/F | F7sus4 - F7 |", "| Cm9 | Gb7(#11) | Fm7 Bb13 | Ebmaj9 - F13 |"],
+            bridgeRole: "borrowed iv(Ebm6)와 tritone color(Gb7#11)를 1회만 써서 품격 있는 균열을 만듭니다.",
+            bTitle: "B안: G minor 기준 더 낮고 사적인 진행",
+            bVerse: "Verse: | Gm9 | Ebmaj7 | Bb/D | F/A | Cm9 | D7(b9) | Gm9 | Fsus4 - F |",
+            bChorus: "Chorus: | Ebmaj9 | F13 | Gm9 | Bb/D | Cm9 | F7sus4 - F7 | Bbmaj9 | D7/F# |",
+            voicing: ["왼손/베이스는 루트보다 3도 하행을 우선합니다: Bb-A-G-F-Eb-D.", "멜로디 핵심 단어는 9도나 6도에 걸어 절제된 어른 발라드 색을 냅니다.", "코러스 첫 줄은 크게 울지 말고 Ebmaj9 위에서 낮게 시작하세요."],
+          },
+          recovery: {
+            name: "회복형 리프트 발라드",
+            key: "D major / B minor",
+            goal: "vi에서 시작하되 코러스는 IV-I-V-vi가 아니라 I로 더 빨리 빛을 보여줍니다.",
+            aTitle: "A안: D major 기준 회복 리프트",
+            verse: ["| Bm7 | Gadd9 | D/F# | A |", "| Em7 | A7sus4 | D/F# | Gadd9 - A |"],
+            verseRole: "vi - IV - I6 - V - ii - Vsus - I6 - IV/V. 상처에서 출발해 8마디 끝에 빛을 살짝 보입니다.",
+            pre: ["| Gadd9 | A/G | F#m7 | Bm7 |", "| Em7 | F#7/A# | Bm7 - A/C# | Dsus4 - D |"],
+            preRole: "IV - V/IV - iii - vi - ii - V/vi - vi/V6 - Isus. F#7/A#가 다시 일어서는 당김입니다.",
+            chorus: ["| Dadd9 | A/C# | Bm7 | Gadd9 |", "| Em7 | A7sus4 - A | F#m7 Bm7 | Gadd9 - A |"],
+            chorusRole: "I에서 바로 시작해 회복감을 먼저 보여주고, 7마디 iii-vi로 여운을 남깁니다.",
+            bridge: ["| Bm9 | Gmaj7 | D/A | A7sus4 |", "| Em9 | Gm6 | D/F# B7 | Em7 - A |"],
+            bridgeRole: "Gm6 borrowed iv로 잠깐 흔들렸다가 마지막 ii-V로 final chorus를 엽니다.",
+            bTitle: "B안: B minor 기준 상처에서 회복으로",
+            bVerse: "Verse: | Bm9 | Gmaj7 | D | A/C# | Em7 | F#7sus4 - F#7 | Bm9 | A |",
+            bChorus: "Chorus: | Gadd9 | A | D/F# | Bm7 | Em7 | A7sus4 - A | Dadd9 | F#7/A# |",
+            voicing: ["Verse는 Bm9의 9도(C#)를 길게 두어 아직 끝나지 않은 마음을 만듭니다.", "코러스는 Dadd9로 빨리 밝히되, 7마디에서 한 번 더 숨을 고릅니다.", "Final chorus는 같은 진행을 한 키 올리기보다 베이스만 상행시키는 편이 덜 뻔합니다."],
+          },
+          longing: {
+            name: "미련/시간 회상형",
+            key: "E major / C# minor",
+            goal: "장면을 붙잡는 vi-IV-I-V 계열을 쓰되, iii와 secondary dominant로 과거감의 깊이를 만듭니다.",
+            aTitle: "A안: E major 기준 시간 회상 팝",
+            verse: ["| C#m9 | Amaj7 | E/G# | B/F# |", "| F#m7 | G#7/C | C#m7 | Aadd9 - B |"],
+            verseRole: "vi9 - IVmaj7 - I6 - V6 - ii7 - V/vi - vi7 - IV/V. G#7/C가 미련을 붙잡습니다.",
+            pre: ["| Amaj7 | B/A | G#m7 | C#m7 |", "| F#m7 | Bsus4 - B | E/G# | Aadd9 - B |"],
+            preRole: "IV - V/IV - iii - vi - ii - V - I6 - IV/V. 제목 직전 시야가 넓어집니다.",
+            chorus: ["| Aadd9 | E/G# | F#m7 | Bsus4 - B |", "| C#m7 | G#m7 | Amaj7 | Bsus4 - B |"],
+            chorusRole: "IV에서 시작하지만 5마디 vi로 다시 과거에 빠집니다. 시간 제목/장소 제목에 적합합니다.",
+            bridge: ["| C#m9 | Amaj7(#11) | E/B | B7 |", "| F#m9 | Am6 | E/G# C#7 | F#m7 - B |"],
+            bridgeRole: "Am6 borrowed iv가 계절감의 균열입니다. 너무 많이 쓰면 일본식 발라드 색이 강해지니 1회만 둡니다.",
+            bTitle: "B안: C# minor 기준 더 선명한 미련",
+            bVerse: "Verse: | C#m9 | Amaj7 | E | B/D# | F#m7 | G#7(b9) | C#m9 | Bsus4 - B |",
+            bChorus: "Chorus: | Amaj9 | B | G#m7 | C#m7 | F#m7 | Bsus4 - B | E | G#7/C |",
+            voicing: ["상성부는 E-F#-G#처럼 한두 음만 움직여 기억이 반복되는 느낌을 만듭니다.", "훅 첫 음은 Amaj9 위의 B(9도)에 두면 현대적인 미련 색이 납니다.", "브리지는 코드를 화려하게 늘리기보다 Am6 한 방으로 장면을 바꾸세요."],
+          },
+          confession: {
+            name: "직접 고백형 팝 발라드",
+            key: "A major / F# minor",
+            goal: "프리코러스에서 V/vi와 sus를 밀고, 코러스 첫 줄에서 I 또는 IV에 제목을 바로 얹습니다.",
+            aTitle: "A안: A major 기준 고백 직진형",
+            verse: ["| Aadd9 | E/G# | F#m7 | Dmaj7 |", "| Bm7 | Esus4 - E | C#m7 | Dadd9 - E |"],
+            verseRole: "I - V6 - vi - IV - ii - Vsus - iii - IV/V. 익숙하지만 말하듯 고백하기 좋습니다.",
+            pre: ["| F#m7 | Dmaj7 | A/E | E/G# |", "| Bm7 | C#7/E# | F#m7 - E/G# | Asus4 - A |"],
+            preRole: "vi - IV - I64 - V6 - ii - V/vi - vi/V6 - Isus. C#7/E#에서 감정이 앞으로 나옵니다.",
+            chorus: ["| Aadd9 | E/G# | F#m7 | Dadd9 |", "| Bm7 | Esus4 - E | A/C# | Dadd9 - E |"],
+            chorusRole: "I에서 시작해 제목을 숨기지 않습니다. 7마디 A/C#는 마지막 반복의 도약 지점입니다.",
+            bridge: ["| F#m9 | Dmaj7 | A/E | E7sus4 - E7 |", "| Bm9 | Dm6 | A/C# F#7 | Bm7 - E |"],
+            bridgeRole: "Dm6 borrowed iv로 고백의 그림자를 만들고 다시 ii-V로 돌아옵니다.",
+            bTitle: "B안: F# minor 기준 더 절박한 고백",
+            bVerse: "Verse: | F#m9 | Dmaj7 | A | E/G# | Bm7 | C#7sus4 - C#7 | F#m9 | E |",
+            bChorus: "Chorus: | Dadd9 | E | A/C# | F#m7 | Bm7 | Esus4 - E | A | C#7/E# |",
+            voicing: ["고백형은 코드보다 제목 첫 줄의 리듬이 중요합니다. 코러스 1마디 안에 결론을 둡니다.", "C#7/E#는 프리코러스 마지막 2마디 또는 브리지에서만 써서 과한 신파를 피합니다.", "피아노는 add9를 많이 쓰되 보컬이 9도에 있으면 반주 9도는 빼세요."],
+          },
+          hybrid: {
+            name: "장르 혼합 하이브리드 팝",
+            key: "C major / A minor",
+            goal: "벌스는 R&B/시티팝처럼 색채화음, 코러스는 팝처럼 단순한 해상으로 대비를 만듭니다.",
+            aTitle: "A안: C major 기준 하이브리드 팝",
+            verse: ["| Am9 | Fmaj7 | C/E | G13 |", "| Dm9 | E7(#9) | Am9 | Gsus4 - G |"],
+            verseRole: "vi9 - IVmaj7 - I6 - V13 - ii9 - V/vi altered - vi9 - Vsus. 벌스는 색채, 코러스는 기억성.",
+            pre: ["| Fmaj7 | G/F | Em7 | Am7 |", "| Dm7 | E7/G# | Am7 - G/B | Csus4 - C |"],
+            preRole: "IV - V/IV - iii - vi - ii - V/vi - vi/V6 - Isus. 장르가 바뀌는 문턱입니다.",
+            chorus: ["| Cadd9 | G/B | Am7 | Fadd9 |", "| Dm7 | Gsus4 - G | Em7 Am7 | Fadd9 - G |"],
+            chorusRole: "코러스는 일부러 단순하게 둬서 포스트훅/제목 큐가 기억됩니다.",
+            bridge: ["| Am9 | Fmaj7(#11) | C/G | G7sus4 |", "| Dm9 | Ab13(#11) | Em7 A7 | Dm7 - G |"],
+            bridgeRole: "Ab13(#11)은 tritone 색채입니다. 한 번만 쓰고 바로 팝 코러스로 돌아옵니다.",
+            bTitle: "B안: A minor 기준 R&B색 강화",
+            bVerse: "Verse: | Am9 | D9 | G13 | Cmaj9 | Fmaj9 | Bm7b5 E7 | Am9 | E7sus4 |",
+            bChorus: "Chorus: | Fadd9 | G | Em7 | Am7 | Dm7 | Gsus4 - G | Cadd9 | E7/G# |",
+            voicing: ["벌스는 7th/9th를 허용하고, 코러스는 triad+add9로 단순화합니다.", "베이스는 장르 전환의 핵심입니다. 벌스는 싱코페이션, 코러스는 큰 박으로 갑니다.", "장르 혼합은 코드보다 질감 대비가 중요하니 드럼/베이스 패턴도 같이 바꾸세요."],
+          },
+          dance: {
+            name: "글로벌 팝/댄스 리프트",
+            key: "F major / D minor",
+            goal: "코드는 4마디 반복을 짧게 잡고, pre-drop과 post-hook에서 베이스/리듬 훅을 만듭니다.",
+            aTitle: "A안: F major 기준 댄스팝",
+            verse: ["| Dm7 | Bbadd9 | F/A | C |", "| Gm7 | Bb/C | F/A | C |"],
+            verseRole: "vi - IV - I6 - V 반복. 벌스는 낮게 말하고 킥/베이스가 공간을 만듭니다.",
+            pre: ["| Bbadd9 | C/Bb | Am7 | Dm7 |", "| Gm7 | A7/C# | Dm7 | Csus4 - C |"],
+            preRole: "IV - V/IV - iii - vi - ii - V/vi - vi - Vsus. 드롭 직전 A7/C#로 밀어줍니다.",
+            chorus: ["| F | C/E | Dm7 | Bbadd9 |", "| F/A | C | Dm7 | Bbadd9 |"],
+            chorusRole: "I-V-vi-IV를 숨기지 않고, 대신 post-hook 리듬/사운드로 차별화합니다.",
+            bridge: ["| Dm9 | Bbmaj7 | F/C | C7sus4 |", "| Gm9 | Db13 | C7sus4 | C7 |"],
+            bridgeRole: "Db13은 tritone pre-drop 색채입니다. 길게 끌지 말고 1마디만 씁니다.",
+            bTitle: "B안: D minor 기준 더 강한 해방감",
+            bVerse: "Verse: | Dm | Bb | F | C | Gm | A7 | Dm | C |",
+            bChorus: "Chorus: | Bb | C | Dm | F/A | Bb | C | F | A7/C# |",
+            voicing: ["복잡한 보이싱보다 베이스 리듬과 post-hook 신스 큐가 우선입니다.", "코러스 코드는 단순하게 두고 제목 큐를 2-4음절로 반복하세요.", "마지막 코러스는 전조보다 드럼 필/하모니/옥타브 더블로 확장합니다."],
+          },
+          rnb: {
+            name: "R&B 팝 그루브형",
+            key: "Db major / Bb minor",
+            goal: "minor9, maj9, dominant altered를 쓰되 루프감은 짧게 유지합니다.",
+            aTitle: "A안: Db major 기준 R&B 팝",
+            verse: ["| Bbm9 | Gbmaj9 | Db/F | Ab13 |", "| Ebm9 | F7alt | Bbm9 | Ab13 |"],
+            verseRole: "vi9 - IVmaj9 - I6 - V13 - ii9 - V/vi alt - vi9 - V13. 말맛과 그루브를 살립니다.",
+            pre: ["| Gbmaj9 | Ab/Gb | Fm7 | Bbm9 |", "| Ebm9 | F7/A | Bbm9 - Ab/C | Dbsus4 - Db |"],
+            preRole: "IV - V/IV - iii - vi - ii - V/vi - vi/V6 - Isus. 보컬 애드립이 들어갈 공간을 남깁니다.",
+            chorus: ["| Gbmaj9 | Fm7 | Ebm9 | Ab13 |", "| Dbmaj9 | Ab/C | Bbm9 | Gbmaj9 - Ab13 |"],
+            chorusRole: "IV-iii-ii-V로 부드럽게 미끄러진 뒤 5마디 Dbmaj9에서 제목을 해소합니다.",
+            bridge: ["| Bbm9 | Gbmaj9(#11) | Db/Ab | Ab7sus4 |", "| Ebm9 | E13(#11) | Fm7 Bb7alt | Ebm9 - Ab13 |"],
+            bridgeRole: "E13(#11)로 반음 위 색채를 빌리고 바로 ii-V로 정리합니다.",
+            bTitle: "B안: Bb minor 기준 더 어두운 그루브",
+            bVerse: "Verse: | Bbm9 | Eb13 | Abmaj9 | Dbmaj9 | Gbmaj9 | Cm7b5 F7 | Bbm9 | F7sus4 |",
+            bChorus: "Chorus: | Gbmaj9 | Ab13 | Fm7 | Bbm9 | Ebm9 | Ab13 | Dbmaj9 | F7/A |",
+            voicing: ["드럼/베이스 pocket이 우선입니다. 코드가 많아도 박자는 적게 느껴져야 합니다.", "보컬 더블은 후크 단어에만, 애드립은 마지막 2마디에만 둡니다.", "9th와 13th는 반주가 아니라 보컬 빈칸을 채우는 색으로 씁니다."],
+          },
+          kpop: {
+            name: "K-pop 글로벌 그루브형",
+            key: "F major / D minor 또는 Ab major / F minor",
+            goal: "코드는 4마디 훅 루프를 선명하게 두고, pre-chorus에서 secondary dominant와 chromatic bass로 코러스/포스트훅 진입 압력을 만듭니다.",
+            aTitle: "A안: F major 기준 K-pop 글로벌 팝 진행",
+            verse: ["| Dm7 | Bbadd9 | F/A | C/E |", "| Gm7 | A7/C# | Dm7 | Csus4 - C |"],
+            verseRole: "vi - IV - I6 - V6 - ii - V/vi - vi - Vsus. 벌스는 말하듯 낮게 두고 A7/C#로 프리코러스 전 긴장을 만듭니다.",
+            pre: ["| Bbadd9 | C/Bb | Am7 | Dm7 |", "| Gm7 | A7/C# | Dm7 - C/E | Fsus4 - F |"],
+            preRole: "IV - V/IV - iii - vi - ii - V/vi - vi/V6 - Isus. 베이스가 Bb-C-Bb-A-D-C#-D-C-E-F로 움직여 훅 직전 상승감을 줍니다.",
+            chorus: ["| Bbadd9 | C | Am7 | Dm7 |", "| Gm7 | C | F/A | Bbadd9 - C |"],
+            chorusRole: "IV-V-iii-vi 후 5마디 ii-V-I6로 한번 해소합니다. 제목 훅은 1마디 Bbadd9 위에 짧게, 포스트훅은 7-8마디에 둡니다.",
+            bridge: ["| Dm9 | Bbmaj7(#11) | F/C | C7sus4 - C7 |", "| Gm9 | Db13(#11) | Am7 D7 | Gm7 - C |"],
+            bridgeRole: "Db13(#11)은 tritone 색채입니다. 길게 끌지 말고 마지막 후렴 전 한 마디 장면 전환으로만 씁니다.",
+            bTitle: "B안: Ab major 기준 더 세련된 K-pop 팝 진행",
+            bVerse: "Verse: | Fm9 | Dbmaj9 | Ab/Eb | Eb | Bbm7 | C7/E | Fm9 | Eb |",
+            bChorus: "Chorus: | Dbadd9 | Eb | Cm7 | Fm7 | Bbm7 | Ebsus4 - Eb | Ab/C | Dbadd9 - Eb |",
+            voicing: ["후크는 코드보다 리듬 포켓이 먼저입니다. 코러스 코드는 4마디 단위로 반복 가능해야 숏폼/퍼포먼스 훅이 살아납니다.", "Verse는 minor7/add9로 낮게, Chorus는 add9 triad로 밝게 벌려 대비를 만듭니다.", "포스트훅은 새 코드 진행을 추가하지 말고 7-8마디 루프 위에서 신스 리프나 보컬 샘플형 리듬으로 기억점을 만듭니다."],
+          },
+          jpop: {
+            name: "J-pop/J-rock 여운형",
+            key: "E major / C# minor",
+            goal: "IV-V-iii-vi의 유예감, V/vi의 당김, borrowed iv의 계절감을 섞어 긴 멜로디가 떠 있게 만듭니다.",
+            aTitle: "A안: E major 기준 J-pop 발라드 진행",
+            verse: ["| C#m9 | Aadd9 | E/G# | B/F# |", "| F#m7 | G#7/C | C#m7 | Bsus4 - B |"],
+            verseRole: "vi9 - IVadd9 - I6 - V6 - ii7 - V/vi - vi - Vsus. 첫 장면은 단조에서 시작하지만 3-4마디에 빛을 보여줍니다.",
+            pre: ["| Aadd9 | B/A | G#m7 | C#m7 |", "| F#m7 | Bsus4 - B | E/G# | Aadd9 - B |"],
+            preRole: "IV - V/IV - iii - vi - ii - V - I6 - IV/V. 코러스 전 시야를 넓혀 일본 발라드식 상승감을 만듭니다.",
+            chorus: ["| Aadd9 | B | G#m7 | C#m7 |", "| F#m7 | Bsus4 - B | E | G#7/C |"],
+            chorusRole: "IV-V-iii-vi로 바로 해소하지 않고 감정을 유예합니다. 7마디 E 착지 뒤 G#7/C로 다음 반복을 당깁니다.",
+            bridge: ["| C#m9 | Amaj7(#11) | E/B | B7sus4 - B7 |", "| F#m9 | Am6 | E/G# C#7 | F#m7 - B |"],
+            bridgeRole: "Am6 borrowed iv가 계절감의 균열입니다. Final chorus 전 한 번만 사용해 과장 없이 장면을 바꿉니다.",
+            bTitle: "B안: C# minor 기준 J-rock 팝 진행",
+            bVerse: "Verse: | C#m | A | E | B | F#m | G#7 | C#m | B |",
+            bChorus: "Chorus: | A | B | C#m | E/G# | A | B | E | G#7/C |",
+            voicing: ["피아노는 오른손 탑노트를 E-F#-G#처럼 길게 연결하고, 기타는 8분 아르페지오로 추진력을 만듭니다.", "코러스 첫 코드 Aadd9 위에 멜로디 9도(B)를 얹으면 현대 J-pop식 그리움이 납니다.", "Bridge의 Am6는 많이 쓰면 클리셰가 되므로 마지막 후렴 직전 1회만 씁니다."],
+          },
+          lyrical: {
+            name: "서정 팝/발라드 변주형",
+            key: "C major / A minor",
+            goal: "기본 팝 발라드 문법을 쓰더라도 verse, pre, chorus의 출발 화음과 베이스 방향을 다르게 설계해 복붙 진행처럼 들리지 않게 만듭니다.",
+            aTitle: "A안: C major 기준 서정 팝 변주 진행",
+            verse: ["| Am9 | Fmaj7 | C/E | Gsus4 - G |", "| Dm7 | E7/G# | Am7 | Fadd9 - G |"],
+            verseRole: "vi9 - IVmaj7 - I6 - Vsus/V - ii7 - V/vi - vi7 - IV/V. 낮은 벌스에서 회상과 당김을 동시에 만듭니다.",
+            pre: ["| Fadd9 | G/F | Em7 | Am7 |", "| Dm9 | E7sus4 - E7 | Am7 - G/B | Csus4 - C |"],
+            preRole: "IV - V/IV - iii - vi - ii9 - V/vi - vi/V6 - Isus. E7은 단 한 번만 써서 코러스 직전 압력을 만듭니다.",
+            chorus: ["| Fadd9 | G | Em7 | Am7 |", "| Dm7 | Gsus4 - G | C/E | Fadd9 - G |"],
+            chorusRole: "IV-V-iii-vi로 바로 밝아지지 않고, 7마디 C/E에서 제목을 늦게 해소합니다.",
+            bridge: ["| Am9 | Fmaj7(#11) | C/G | G7sus4 - G7 |", "| Dm9 | Fm6 | C/E A7 | Dm7 - G |"],
+            bridgeRole: "Fm6 borrowed iv와 A7 secondary dominant를 한 번만 써서 마지막 후렴 전 시점을 바꿉니다.",
+            bTitle: "B안: A minor 기준 더 담담한 진행",
+            bVerse: "Verse: | Am9 | Fmaj7 | C | G/B | Dm7 | E7sus4 - E7 | Am9 | G |",
+            bChorus: "Chorus: | Fadd9 | G | Am7 | C/E | Dm7 | Gsus4 - G | C | E7/G# |",
+            voicing: ["피아노/기타는 루트보다 3도와 7도, add9를 먼저 잡고 베이스만 A-F-E-G처럼 움직입니다.", "코러스 첫 화음 Fadd9 위에 멜로디 9도(G)를 얹으면 익숙하지만 덜 낡은 서정 팝 색이 납니다.", "마지막 후렴은 코드를 더 복잡하게 만들기보다 C/E, G/B 같은 slash bass로 감정의 높이를 바꿉니다."],
+          },
+        };
+        return { ...(palettes[signature] || palettes.lyrical), signature, sampleNote };
+      }
+
+      function harmonicBlueprint(songs) {
+        const palette = harmonyPalette(songs);
         const tonalCenter = inferKeyCenter(songs);
-        const emotionalColor = isSoft ? "서정 팝/발라드" : "멜로딕 팝";
         const jazzPlan = hasJazzReference(songs) ? `${jazzHarmonyBlueprint(songs)}\n\n[팝 적용 보조안]` : "";
 
         return [
           jazzPlan,
           `- 원곡 코드 참고: ${chordSourceSummary(songs)}`,
           `- 새 곡 권장 중심키: ${tonalCenter}`,
-          `- 화성 목표: ${emotionalColor} 기준으로 I, vi, IV, V를 뼈대로 잡고 add9, maj7, sus4, 세컨더리 도미넌트로 감정선을 만듭니다.`,
+          `- 이번 컨셉 화성 팔레트: ${palette.name} (${palette.signature})`,
+          `- 팔레트 산출 근거: ${palette.sampleNote}`,
+          `- 화성 목표: ${palette.goal}`,
           "",
-          "A안: G major 기준 서정 팝 발라드 진행",
+          palette.aTitle,
           "Verse 8마디:",
-          "| G(add9) | D/F# | Em7 | Cmaj7 |",
-          "| Am7 | Dsus4 - D | G/B | Cadd9 - D |",
-          "- 기능: I(add9) - V6 - vi7 - IVmaj7 - ii7 - Vsus4/V - I6 - IVadd9/V",
-          "- 역할: 1-4마디는 안정과 그리움, 5-8마디는 ii-V 느낌으로 프리코러스 진입 준비.",
+          ...palette.verse,
+          `- 기능/역할: ${palette.verseRole}`,
           "",
           "Pre-Chorus 8마디:",
-          "| Em7 | Cmaj7 | G/D | D/F# |",
-          "| Am7 | B7/D# | Em7 - D/F# | Gsus4 - G |",
-          "- 기능: vi7 - IVmaj7 - I64 - V6 - ii7 - V/vi - vi7/V6 - Isus4/I",
-          "- 역할: B7/D#는 E minor로 잠깐 당기는 세컨더리 도미넌트라 감정 압력을 만들고, Gsus4-G로 코러스 문을 엽니다.",
+          ...palette.pre,
+          `- 기능/역할: ${palette.preRole}`,
           "",
           "Chorus 8마디:",
-          "| Cadd9 | G/B | Am7 | Dsus4 - D |",
-          "| G | D/F# | Em7 | Cadd9 - D |",
-          "- 기능: IVadd9 - I6 - ii7 - Vsus4/V - I - V6 - vi7 - IVadd9/V",
-          "- 역할: 코러스를 IV에서 시작하면 밝지만 살짝 아픈 느낌이 나고, 5마디 I 착지가 제목 훅의 해상도처럼 들립니다.",
+          ...palette.chorus,
+          `- 기능/역할: ${palette.chorusRole}`,
           "",
           "Bridge 8마디:",
-          "| Em9 | Cmaj7(#11) | G/D | D7sus4 - D7 |",
-          "| Am9 | C/D | G/B - B7/D# | Em7 - D |",
-          "- 기능: vi9 - IVmaj7(#11) - I64 - V7sus/V7 - ii9 - IV/V - I6/V/vi - vi/V",
-          "- 역할: #11, 9th, sus4는 화려함보다 긴장색입니다. 탑노트는 한 음이나 두 음만 움직이게 보이싱하세요.",
+          ...palette.bridge,
+          `- 기능/역할: ${palette.bridgeRole}`,
           "",
-          "B안: E minor 기준 더 쓸쓸한 진행",
-          "Verse: | Em9 | Cmaj7 | G | D/F# | Am7 | B7(b9) | Em9 | Dsus4 - D |",
-          "Chorus: | Cmaj7 | D | Em7 | G/B | Cadd9 | Dsus4 - D | G | B7/D# |",
-          "- B7(b9)는 너무 재즈처럼 들리면 B7sus4-B7로 단순화합니다.",
+          palette.bTitle,
+          palette.bVerse,
+          palette.bChorus,
+          "- B안은 A안보다 정서/장르 색을 더 강하게 밀 때만 씁니다. 너무 비슷하면 Verse 시작화음과 Chorus 시작화음을 서로 바꾸세요.",
           "",
           "보이싱 지시:",
-          "- 피아노/기타는 3도와 7도를 먼저 잡고, 멜로디가 비는 곳에 add9 또는 sus4만 얹습니다.",
-          "- 베이스는 G - F# - E - C처럼 하행하거나, 코러스에서 C - B - A - D로 반대로 움직여 훅을 띄웁니다.",
-          "- 훅 첫 음이 3도나 5도에 걸리면 안정적이고, 9도에 걸리면 더 현대적인 서정 팝 느낌이 납니다.",
+          ...palette.voicing.map((line) => `- ${line}`),
         ].join("\n");
       }
 
