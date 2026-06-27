@@ -1,6 +1,12 @@
 name: Hit Song Lab Pages
 
 on:
+  push:
+    branches: ["main"]
+    paths:
+      - "public-site/**"
+      - "cloud_ledger/song_library.json"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
