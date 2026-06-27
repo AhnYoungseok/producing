@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import os
@@ -18,6 +19,8 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 QUEUE_PATH = ROOT_DIR / "backend" / "seeds" / "cloud_reference_queue.json"
 FALLBACK_QUEUE_PATH = ROOT_DIR / "backend" / "seeds" / "cloud_reference_fallback_hits.json"
 LEDGER_PATH = ROOT_DIR / "cloud_ledger" / "song_library.json"
+LEDGER_CSV_PATH = ROOT_DIR / "cloud_ledger" / "song_library.csv"
+SUMMARY_CSV_PATH = ROOT_DIR / "cloud_ledger" / "summary.csv"
 
 
 def main() -> None:
@@ -73,16 +76,15 @@ def main() -> None:
         )
         return
 
-    _save_ledger(
-        ledger_path,
-        {
-            **ledger,
-            "version": 1,
-            "updated_at": now_iso,
-            "total_after_baseline": total_after_ledger,
-            "songs": merged_ledger_records,
-        },
-    )
+    updated_ledger = {
+        **ledger,
+        "version": 1,
+        "updated_at": now_iso,
+        "total_after_baseline": total_after_ledger,
+        "songs": merged_ledger_records,
+    }
+    _save_ledger(ledger_path, updated_ledger)
+    _save_cloud_exports(updated_ledger)
 
     sheet_added_count = 0
     if service is not None:
@@ -188,6 +190,49 @@ def _load_ledger(path: Path) -> dict[str, Any]:
 def _save_ledger(path: Path, ledger: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _save_cloud_exports(ledger: dict[str, Any]) -> None:
+    songs = ledger.get("songs", [])
+    fieldnames = [
+        "no",
+        "added_date",
+        "added_at",
+        "title",
+        "artist",
+        "genre",
+        "country",
+        "release_year",
+        "bpm",
+        "key",
+        "hook_type",
+        "hook_location",
+        "hook_cue",
+        "lyric_theme",
+        "producer_takeaway",
+        "data_confidence",
+        "chart_source",
+        "source_type",
+        "youtube_url",
+    ]
+    LEDGER_CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with LEDGER_CSV_PATH.open("w", newline="", encoding="utf-8-sig") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for index, song in enumerate(songs, start=1):
+            writer.writerow({"no": index, **song})
+
+    summary_rows = [
+        ["metric", "value", "note"],
+        ["total_after_baseline", ledger.get("total_after_baseline", 0), "baseline local DB count plus public cloud song rows"],
+        ["baseline_count", ledger.get("baseline", {}).get("count", 0), "existing local DB rows are stored as identity hashes only"],
+        ["public_cloud_song_rows", len(songs), "rows visible in cloud_ledger/song_library.csv"],
+        ["updated_at", ledger.get("updated_at", ""), "last GitHub Actions ledger update time"],
+        ["source", "GitHub Actions cloud ledger", "Google Sheets can mirror this with IMPORTDATA"],
+    ]
+    with SUMMARY_CSV_PATH.open("w", newline="", encoding="utf-8-sig") as file:
+        writer = csv.writer(file)
+        writer.writerows(summary_rows)
 
 
 def _display_path(path: Path) -> str:
