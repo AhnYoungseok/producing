@@ -8,6 +8,7 @@ on:
       - "backend/scripts/backfill_billboard_hot100.py"
       - "backend/scripts/backfill_korean_melon.py"
       - "backend/scripts/backfill_japanese_oricon.py"
+      - "backend/scripts/backfill_jazz_musicbrainz.py"
       - "backend/seeds/cloud_reference_queue.json"
       - "backend/seeds/cloud_reference_fallback_hits.json"
       - "backend/requirements-cloud.txt"
@@ -25,6 +26,10 @@ on:
         default: ""
       japanese_add_count:
         description: "Optional one-time Japanese Oricon weekly-singles rows to add"
+        required: false
+        default: ""
+      jazz_add_count:
+        description: "Optional one-time MusicBrainz jazz recording rows to add"
         required: false
         default: ""
 
@@ -60,8 +65,11 @@ jobs:
           BACKFILL_TARGET_TOTAL: ${{ github.event.inputs.target_total }}
           KOREAN_ADD_COUNT: ${{ github.event.inputs.korean_add_count }}
           JAPANESE_ADD_COUNT: ${{ github.event.inputs.japanese_add_count }}
+          JAZZ_ADD_COUNT: ${{ github.event.inputs.jazz_add_count }}
         run: |
-          if [ -n "$JAPANESE_ADD_COUNT" ]; then
+          if [ -n "$JAZZ_ADD_COUNT" ]; then
+            python backend/scripts/backfill_jazz_musicbrainz.py --add-count "$JAZZ_ADD_COUNT"
+          elif [ -n "$JAPANESE_ADD_COUNT" ]; then
             python backend/scripts/backfill_japanese_oricon.py --add-count "$JAPANESE_ADD_COUNT"
           elif [ -n "$KOREAN_ADD_COUNT" ]; then
             python backend/scripts/backfill_korean_melon.py --add-count "$KOREAN_ADD_COUNT"

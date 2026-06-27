@@ -192,7 +192,7 @@ def _load_ledger(path: Path) -> dict[str, Any]:
 
 def _save_ledger(path: Path, ledger: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(ledger, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(ledger, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
 
 
 def _save_cloud_exports(ledger: dict[str, Any]) -> None:
