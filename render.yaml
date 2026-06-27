@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: hit-song-lab-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: AUTO_REFERENCE_BATCH_ENABLED
+        value: "false"
+      - key: AUTO_REFERENCE_BATCH_RUN_ON_STARTUP
+        value: "false"
+      - key: CLOUD_LIBRARY_SOURCE
+        value: cloud_ledger
+      - key: CLOUD_LEDGER_URL
+        value: https://raw.githubusercontent.com/AhnYoungseok/producing/main/cloud_ledger/song_library.json
+      - key: GOOGLE_SHEET_ID
+        value: 1U_WUMnel9AZv-7YymqMRMDw5iX_MI-M3r2Yw0e7umNs
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: FRONTEND_ORIGINS
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false

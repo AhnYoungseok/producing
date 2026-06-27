@@ -5,6 +5,7 @@ from fastapi import APIRouter
 
 from app.core.config import settings
 from app.db.database import SQLiteStore
+from app.services.cloud_library_service import cloud_dashboard, cloud_hook_summaries, cloud_library_enabled, cloud_statistics, load_cloud_songs
 from app.services.library_exporter import export_store_snapshot
 from app.services.statistics_service import build_hit_song_statistics
 
@@ -14,11 +15,15 @@ store = SQLiteStore(settings.database_path)
 
 @router.get("/library/dashboard")
 def dashboard() -> dict:
+    if cloud_library_enabled():
+        return cloud_dashboard()
     return store.dashboard()
 
 
 @router.get("/library/statistics")
 def statistics() -> dict:
+    if cloud_library_enabled():
+        return cloud_statistics()
     songs = store.list_songs()
     analyses = store.get_analyses_for_songs([song["id"] for song in songs])
     return build_hit_song_statistics(songs, analyses)
@@ -26,11 +31,15 @@ def statistics() -> dict:
 
 @router.get("/library/songs")
 def library_songs() -> dict:
+    if cloud_library_enabled():
+        return {"songs": load_cloud_songs()}
     return {"songs": store.list_songs()}
 
 
 @router.get("/library/hook-summaries")
 def hook_summaries() -> dict[str, Any]:
+    if cloud_library_enabled():
+        return cloud_hook_summaries()
     songs = store.list_songs()
     analyses = {analysis["song_id"]: analysis for analysis in store.get_analyses_for_songs([song["id"] for song in songs])}
     rows = [_build_hook_summary(song, analyses.get(song["id"])) for song in songs]

@@ -10,7 +10,8 @@ from app.services.auto_reference_batch_worker import start_auto_reference_batch_
 
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name)
-    frontend_origins = sorted({settings.frontend_origin, "http://localhost:3100", "http://127.0.0.1:3100"})
+    configured_origins = [origin.strip() for origin in (settings.frontend_origins or "").split(",") if origin.strip()]
+    frontend_origins = sorted({settings.frontend_origin, *configured_origins, "http://localhost:3100", "http://127.0.0.1:3100"})
     app.add_middleware(
         CORSMiddleware,
         allow_origins=frontend_origins,

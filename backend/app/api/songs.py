@@ -6,6 +6,12 @@ from pydantic import BaseModel
 from app.core.config import settings
 from app.db.database import SQLiteStore
 from app.models.song import SongCreate, SongListResponse, SongResponse
+from app.services.cloud_library_service import (
+    cloud_library_enabled,
+    find_cloud_analysis,
+    find_cloud_song,
+    load_cloud_songs,
+)
 from app.services.hit_song_researcher import build_analysis_from_research_profile, build_structured_profile
 from app.services.library_exporter import export_store_snapshot
 
@@ -33,12 +39,20 @@ def list_songs(
     country: str | None = None,
     emotion: str | None = None,
 ) -> SongListResponse:
+    if cloud_library_enabled():
+        songs = _filter_cloud_songs(load_cloud_songs(), query=query, genre=genre, key=key, country=country)
+        return SongListResponse(songs=[SongResponse(**song) for song in songs])
     songs = store.list_songs(query=query, genre=genre, key=key, country=country, emotion=emotion)
     return SongListResponse(songs=[SongResponse(**song) for song in songs])
 
 
 @router.get("/songs/{song_id}", response_model=SongResponse)
 def get_song(song_id: str) -> SongResponse:
+    if cloud_library_enabled():
+        song = find_cloud_song(song_id)
+        if song is None:
+            raise HTTPException(status_code=404, detail="곡을 찾을 수 없습니다.")
+        return SongResponse(**song)
     song = store.get_song(song_id)
     if song is None:
         raise HTTPException(status_code=404, detail="곡을 찾을 수 없습니다.")
@@ -47,6 +61,11 @@ def get_song(song_id: str) -> SongResponse:
 
 @router.get("/songs/{song_id}/analysis")
 def get_song_analysis(song_id: str) -> dict[str, Any]:
+    if cloud_library_enabled():
+        analysis = find_cloud_analysis(song_id)
+        if analysis is None:
+            raise HTTPException(status_code=404, detail="분석 결과를 찾을 수 없습니다.")
+        return analysis
     analysis = store.get_analysis(song_id)
     if analysis is None:
         raise HTTPException(status_code=404, detail="분석 결과를 찾을 수 없습니다.")
@@ -97,3 +116,24 @@ def _preserve_existing_feature_values(updated_profile: dict[str, Any], previous_
             continue
         if not current or (isinstance(current, dict) and current.get("value") in (None, "", [])):
             updated_features[key] = previous
+
+
+def _filter_cloud_songs(
+    songs: list[dict[str, Any]],
+    *,
+    query: str | None = None,
+    genre: str | None = None,
+    key: str | None = None,
+    country: str | None = None,
+) -> list[dict[str, Any]]:
+    filtered = songs
+    if query:
+        needle = query.casefold()
+        filtered = [song for song in filtered if needle in str(song.get("title") or "").casefold() or needle in str(song.get("artist") or "").casefold()]
+    if genre:
+        filtered = [song for song in filtered if song.get("genre") == genre]
+    if key:
+        filtered = [song for song in filtered if song.get("key") == key]
+    if country:
+        filtered = [song for song in filtered if song.get("country") == country]
+    return filtered

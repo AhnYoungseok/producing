@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     storage_dir: str = "./storage"
     export_dir: str = "./exports/hit_song_library"
     frontend_origin: str = "http://localhost:3100"
+    frontend_origins: str | None = None
+    cloud_library_source: str = "sqlite"
+    cloud_ledger_url: str = "https://raw.githubusercontent.com/AhnYoungseok/producing/main/cloud_ledger/song_library.json"
+    google_sheet_id: str = "1U_WUMnel9AZv-7YymqMRMDw5iX_MI-M3r2Yw0e7umNs"
     max_upload_mb: int = 50
     audio_sample_rate: int = 22050
     auto_reference_batch_enabled: bool = True
