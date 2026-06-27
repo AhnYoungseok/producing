@@ -1500,6 +1500,19 @@
         "melody_rhythm_summary",
         "hook_melody_confidence",
         "hook_melody_source",
+        "rhythm_pattern_summary",
+        "groove_meter",
+        "rhythmic_hook_summary",
+        "syncopation_summary",
+        "rhythm_source",
+        "rhythm_confidence",
+        "accompaniment_pattern",
+        "instrumentation_summary",
+        "production_method_summary",
+        "arrangement_build",
+        "production_texture_summary",
+        "accompaniment_source",
+        "accompaniment_confidence",
       ];
 
       const bpmBuckets = [
@@ -2159,7 +2172,7 @@
         renderSelection();
         renderConceptHints();
         buildRecipe();
-        setStatus("곡별 후렴/코드/멜로디 분석 저장됨");
+        setStatus("곡별 가사/멜로디/리듬/코드/반주 분석 저장됨");
       }
 
       function clearSongAnalysis(key) {
@@ -2324,6 +2337,15 @@
           song.hook_melodic_contour,
           song.melody_interval_summary,
           song.melody_rhythm_summary,
+          song.rhythm_pattern_summary,
+          song.groove_meter,
+          song.rhythmic_hook_summary,
+          song.syncopation_summary,
+          song.accompaniment_pattern,
+          song.instrumentation_summary,
+          song.production_method_summary,
+          song.arrangement_build,
+          song.production_texture_summary,
           song.lyric_theme,
           song.speaker_situation,
           song.story_flow,
@@ -2641,6 +2663,8 @@
                     ${detailCell("코드 분석", songChordAnalysisSummary(song))}
                     ${detailCell("후렴 반복/제목", `${hookLyricInfo(song).repeatedPhrase} / ${hookLyricInfo(song).titlePlacement}`)}
                     ${detailCell("후크 멜로디", `${hookMelodyInfo(song).contour || "후크 멜로디 분석 필요"} / ${hookMelodyInfo(song).rhythm}`)}
+                    ${detailCell("리듬/그루브", `${rhythmInfo(song).pattern || "리듬 분석 필요"} / ${rhythmInfo(song).syncopation}`)}
+                    ${detailCell("반주/제작 방식", `${accompanimentInfo(song).method || "반주/제작 방식 분석 필요"} / ${accompanimentInfo(song).texture}`)}
                     ${detailCell("편곡", song.arrangement)}
                     ${detailCell("보컬/믹스", [song.vocal, song.mixing].filter(Boolean).join(" / "))}
                   </div>
@@ -2721,27 +2745,67 @@
         };
       }
 
+      function rhythmInfo(song) {
+        const pattern = firstPresent(song.rhythm_pattern_summary, song.rhythmic_hook_summary, song.groove_meter, song.melody_rhythm_summary);
+        return {
+          pattern,
+          hasRhythm: Boolean(pattern),
+          meter: firstPresent(song.groove_meter, "박자/그루브 분석 필요"),
+          hook: firstPresent(song.rhythmic_hook_summary, "리듬 후크 분석 필요"),
+          syncopation: firstPresent(song.syncopation_summary, "싱코페이션/강세 분석 필요"),
+          source: firstPresent(song.rhythm_source, pattern ? "사용자 입력/수동 큐레이션" : "리듬 분석 필요"),
+          confidence: firstPresent(song.rhythm_confidence, song.data_confidence, pattern ? "Medium" : "Low"),
+        };
+      }
+
+      function accompanimentInfo(song) {
+        const method = firstPresent(
+          song.production_method_summary,
+          song.accompaniment_pattern,
+          song.arrangement_build,
+          song.instrumentation_summary,
+          song.arrangement,
+          song.mixing
+        );
+        return {
+          method,
+          hasAccompaniment: Boolean(method),
+          pattern: firstPresent(song.accompaniment_pattern, "반주 패턴 분석 필요"),
+          instrumentation: firstPresent(song.instrumentation_summary, song.arrangement, "악기 구성 분석 필요"),
+          build: firstPresent(song.arrangement_build, "구간별 빌드업 분석 필요"),
+          texture: firstPresent(song.production_texture_summary, song.mixing, "질감/믹스 포커스 분석 필요"),
+          source: firstPresent(song.accompaniment_source, method ? "사용자 입력/수동 큐레이션" : "반주/제작 방식 분석 필요"),
+          confidence: firstPresent(song.accompaniment_confidence, song.data_confidence, method ? "Medium" : "Low"),
+        };
+      }
+
       function analysisStatus(song) {
         const lyric = hookLyricInfo(song);
         const chord = songChordAnalysis(song);
         const melody = hookMelodyInfo(song);
+        const rhythm = rhythmInfo(song);
+        const accompaniment = accompanimentInfo(song);
         const missing = [
           lyric.hasExcerpt ? "" : "가사 후크 입력 필요",
           chord.hasRaw ? "" : "코드진행 분석 필요",
           melody.hasMelody ? "" : "후크 멜로디 분석 필요",
+          rhythm.hasRhythm ? "" : "리듬 분석 필요",
+          accompaniment.hasAccompaniment ? "" : "반주/제작 방식 분석 필요",
         ].filter(Boolean);
-        return { lyric, chord, melody, complete: !missing.length, missing };
+        return { lyric, chord, melody, rhythm, accompaniment, complete: !missing.length, missing };
       }
 
       function renderAnalysisStrip(song) {
         const status = analysisStatus(song);
-        const { lyric, chord, melody } = status;
+        const { lyric, chord, melody, rhythm, accompaniment } = status;
         const pills = status.complete
           ? `<span class="status-pill good">분석 완료</span>`
           : status.missing.map((item) => `<span class="status-pill need">${escapeHtml(item)}</span>`).join("");
         const lyricClass = lyric.hasExcerpt ? "" : " missing";
         const chordClass = chord.hasRaw ? "" : " missing";
         const melodyClass = melody.hasMelody ? "" : " missing";
+        const rhythmClass = rhythm.hasRhythm ? "" : " missing";
+        const accompanimentClass = accompaniment.hasAccompaniment ? "" : " missing";
         return `
           <div class="analysis-strip">
             <div class="analysis-status">${pills}</div>
@@ -2760,6 +2824,16 @@
               <div class="analysis-core-title">후크 멜로디 분석</div>
               <div class="analysis-core-value${melodyClass}">${escapeHtml(melody.contour || "후크 멜로디 분석 필요")}</div>
               <div class="analysis-note">음정 ${escapeHtml(melody.interval)} · 리듬 ${escapeHtml(melody.rhythm)} · 신뢰도 ${escapeHtml(melody.confidence)}</div>
+            </div>
+            <div class="analysis-core">
+              <div class="analysis-core-title">리듬/그루브 분석</div>
+              <div class="analysis-core-value${rhythmClass}">${escapeHtml(rhythm.pattern || "리듬 분석 필요")}</div>
+              <div class="analysis-note">박자/그루브 ${escapeHtml(rhythm.meter)} · 리듬 훅 ${escapeHtml(rhythm.hook)} · 강세 ${escapeHtml(rhythm.syncopation)} · 신뢰도 ${escapeHtml(rhythm.confidence)}</div>
+            </div>
+            <div class="analysis-core">
+              <div class="analysis-core-title">반주/제작 방식</div>
+              <div class="analysis-core-value${accompanimentClass}">${escapeHtml(accompaniment.method || "반주/제작 방식 분석 필요")}</div>
+              <div class="analysis-note">패턴 ${escapeHtml(accompaniment.pattern)} · 악기 ${escapeHtml(accompaniment.instrumentation)} · 빌드 ${escapeHtml(accompaniment.build)} · 신뢰도 ${escapeHtml(accompaniment.confidence)}</div>
             </div>
           </div>
         `;
@@ -2815,6 +2889,29 @@
                 ${inputField("melody_rhythm_summary", "리듬 요약", song.melody_rhythm_summary, "짧은 앞박 + 긴 마지막 음")}
                 ${inputField("hook_melody_source", "멜로디 분석 출처", song.hook_melody_source, "사용자 입력 / 악보 / 수동 큐레이션")}
                 ${selectField("hook_melody_confidence", "멜로디 신뢰도", song.hook_melody_confidence, confidenceOptions)}
+              </div>
+            </div>
+            <div class="analysis-edit-section">
+              <div class="analysis-edit-title">리듬/그루브 분석</div>
+              <div class="analysis-edit-grid">
+                ${textField("rhythm_pattern_summary", "리듬 패턴 요약", song.rhythm_pattern_summary, "8비트 피아노 아르페지오 + 코러스 큰 박")}
+                ${inputField("groove_meter", "박자/그루브", song.groove_meter, "4/4, half-time, swing feel")}
+                ${inputField("rhythmic_hook_summary", "리듬 후크", song.rhythmic_hook_summary, "짧은 앞박 반복, 마지막 음 길게")}
+                ${inputField("syncopation_summary", "싱코페이션/강세", song.syncopation_summary, "2박 뒤 당김, 코러스 첫 박 착지")}
+                ${inputField("rhythm_source", "리듬 분석 출처", song.rhythm_source, "사용자 입력 / 악보 / 수동 큐레이션")}
+                ${selectField("rhythm_confidence", "리듬 신뢰도", song.rhythm_confidence, confidenceOptions)}
+              </div>
+            </div>
+            <div class="analysis-edit-section">
+              <div class="analysis-edit-title">반주/제작 방식 분석</div>
+              <div class="analysis-edit-grid">
+                ${textField("accompaniment_pattern", "반주 패턴", song.accompaniment_pattern, "Verse는 피아노 분산화음, Chorus는 스트링/드럼 확장")}
+                ${inputField("instrumentation_summary", "악기 구성", song.instrumentation_summary, "piano, acoustic guitar, strings, restrained drums")}
+                ${textField("production_method_summary", "제작 방식", song.production_method_summary, "1절은 얇게, 프리코러스에서 베이스 상승, 마지막 후렴 더블링")}
+                ${textField("arrangement_build", "구간별 빌드업", song.arrangement_build, "Intro 얇게 / Pre 상승 / Final chorus 확장")}
+                ${inputField("production_texture_summary", "질감/믹스 포커스", song.production_texture_summary, "close vocal, warm reverb, controlled low end")}
+                ${inputField("accompaniment_source", "반주 분석 출처", song.accompaniment_source, "사용자 입력 / 수동 큐레이션")}
+                ${selectField("accompaniment_confidence", "반주/제작 신뢰도", song.accompaniment_confidence, confidenceOptions)}
               </div>
             </div>
             <div class="song-actions">
@@ -3138,6 +3235,8 @@
         const chordCount = songs.filter((song) => songChordAnalysis(song).hasRaw).length;
         const lyricHookCount = songs.filter((song) => hookLyricInfo(song).hasExcerpt).length;
         const melodyHookCount = songs.filter((song) => hookMelodyInfo(song).hasMelody).length;
+        const rhythmCount = songs.filter((song) => rhythmInfo(song).hasRhythm).length;
+        const accompanimentCount = songs.filter((song) => accompanimentInfo(song).hasAccompaniment).length;
         const completeAnalysisCount = songs.filter((song) => analysisStatus(song).complete).length;
         const detailedCount = songs.filter((song) => song.lyric_theme && song.hook_type && song.producer_takeaway).length;
         const lowCount = songs.filter((song) => normalize(song.data_confidence) === "low").length;
@@ -3152,6 +3251,8 @@
           chordCount,
           lyricHookCount,
           melodyHookCount,
+          rhythmCount,
+          accompanimentCount,
           completeAnalysisCount,
           detailedCount,
           lowCount,
@@ -3646,6 +3747,8 @@
           .map((song, index) => {
             const lyric = hookLyricInfo(song);
             const melody = hookMelodyInfo(song);
+            const rhythm = rhythmInfo(song);
+            const accompaniment = accompanimentInfo(song);
             const status = analysisStatus(song);
             return [
               `  ${index + 1}. ${song.title} - ${song.artist}`,
@@ -3653,6 +3756,8 @@
               `     - 출처/입력/권한/표시: ${lyric.source} / ${lyric.inputMethod} / ${lyric.permission} / ${lyric.visibility}`,
               `     - 가사 구조: ${lyric.structureSummary}; 반복 ${lyric.repeatedPhrase}; 제목 ${lyric.titlePlacement}; 역할 ${lyric.chorusRole}`,
               `     - 후크 멜로디: ${melody.contour || "후크 멜로디 분석 필요"}; 음정 ${melody.interval}; 리듬 ${melody.rhythm}`,
+              `     - 리듬/그루브: ${rhythm.pattern || "리듬 분석 필요"}; 박자 ${rhythm.meter}; 강세 ${rhythm.syncopation}`,
+              `     - 반주/제작: ${accompaniment.method || "반주/제작 방식 분석 필요"}; 악기 ${accompaniment.instrumentation}; 빌드 ${accompaniment.build}`,
               `     - 분석 상태: ${status.complete ? "완료" : status.missing.join(" / ")}`,
             ].join("\n");
           })
@@ -3664,13 +3769,17 @@
         const stats = referenceStats(songs);
         const lyricReady = `${stats.lyricHookCount}/${songs.length}`;
         const melodyReady = `${stats.melodyHookCount}/${songs.length}`;
+        const rhythmReady = `${stats.rhythmCount}/${songs.length}`;
+        const accompanimentReady = `${stats.accompanimentCount}/${songs.length}`;
         return [
           `- 추천곡 기준 후크 방향: ${profile.hook}`,
           `- 가장 강한 후크 계열: ${formatCounts(stats.topHooks.slice(0, 3))}`,
-          `- 후렴/가사 후크 분석 보유: ${lyricReady}, 후크 멜로디 분석 보유: ${melodyReady}`,
+          `- 필수 분석 보유: 가사 ${lyricReady}, 멜로디 ${melodyReady}, 리듬 ${rhythmReady}, 반주/제작 ${accompanimentReady}`,
           "- 새 곡 적용: 제목 훅 1개, 리듬 훅 1개, 코드 해상 훅 1개를 따로 만든 뒤 코러스에서 하나로 합칩니다.",
           "- 참고곡의 후렴 발췌가 있으면 문장 길이, 제목 위치, 반복 방식만 일반화하고 원문 표현은 복제하지 않습니다.",
           "- 후크 멜로디 분석이 있으면 시작 음도, 도약 폭, 마지막 지속음, 리듬 포켓을 새 멜로디 원리로 바꿉니다.",
+          "- 리듬 분석이 있으면 박자, 강세, 당김음, 반복 길이를 새 가사 말맛과 맞춰 다시 설계합니다.",
+          "- 반주/제작 분석이 있으면 악기 구성, 구간별 빌드업, 보컬 공간, 믹스 질감만 원리로 가져옵니다.",
           "- 검산: 상위 참고곡의 제목/멜로디/리프를 닮으면 폐기하고, 기능만 남깁니다.",
         ].join("\n");
       }
@@ -4063,8 +4172,8 @@
           "[유형 맞춤 히트곡 20]",
           referenceList || "  - 데이터 로딩 후 자동 추천됩니다.",
           "",
-          "[추천곡별 후렴/후크 가사 + 멜로디 분석]",
-          perSongHookCoreRows(songs, 20) || "  - 추천곡이 로딩되면 후렴 발췌, 구조 요약, 후크 멜로디 분석 상태를 표시합니다.",
+          "[추천곡별 필수 분석: 가사/멜로디/리듬/반주]",
+          perSongHookCoreRows(songs, 20) || "  - 추천곡이 로딩되면 후렴 발췌, 구조 요약, 후크 멜로디, 리듬, 반주/제작 분석 상태를 표시합니다.",
           "",
           "[추천곡별 코드진행 분석]",
           perSongChordAnalysisRows(songs, 20) || "  - 추천곡이 로딩되면 곡별 코드 진행과 창작 적용 진행을 표시합니다.",
@@ -4076,7 +4185,7 @@
           `- 후크 TOP: ${formatCounts(stats.topHooks)}`,
           `- 출처 TOP: ${formatCounts(stats.topSources)}`,
           `- 가사/정서 TOP: ${formatCounts(stats.topThemes)}`,
-          `- 세부 분석 보유: ${stats.detailedCount}/${songs.length}곡, 코드 정보 보유: ${stats.chordCount}/${songs.length}곡, 후렴/가사 후크: ${stats.lyricHookCount}/${songs.length}곡, 후크 멜로디: ${stats.melodyHookCount}/${songs.length}곡, 3종 완료: ${stats.completeAnalysisCount}/${songs.length}곡, 저신뢰 차트-only 행: ${stats.lowCount}/${songs.length}곡`,
+          `- 세부 분석 보유: ${stats.detailedCount}/${songs.length}곡, 코드: ${stats.chordCount}/${songs.length}곡, 가사 후크: ${stats.lyricHookCount}/${songs.length}곡, 멜로디: ${stats.melodyHookCount}/${songs.length}곡, 리듬: ${stats.rhythmCount}/${songs.length}곡, 반주/제작: ${stats.accompanimentCount}/${songs.length}곡, 5축 완료: ${stats.completeAnalysisCount}/${songs.length}곡, 저신뢰 차트-only 행: ${stats.lowCount}/${songs.length}곡`,
           "- 컨셉 체크 질문:",
           "  1. 이 노래의 주인공은 왜 지금 이 말을 해야 하나?",
           "  2. 이 유형의 숨은 욕망과 상처가 한 문장 안에서 충돌하는가?",
@@ -4551,7 +4660,7 @@
           `- 20곡 통계 기준: ${songs.length}곡, BPM ${stats.avgBpm} (${stats.range}), 장르 ${formatCounts(stats.topGenres.slice(0, 3))}`,
           adaptiveRecommendationBlock(songs),
           `- 템포/키 기준: ${avgBpm}, 후보 키 ${keys}`,
-          `- 신뢰도 해석: 저신뢰 차트-only ${stats.lowCount}곡은 히트 신호/제목/장르 참고로만 쓰고, 코드/편곡은 세부 분석 보유 ${stats.detailedCount}곡을 더 우선합니다.`,
+          `- 신뢰도 해석: 저신뢰 차트-only ${stats.lowCount}곡은 히트 신호/제목/장르 참고로만 쓰고, 코드/멜로디/리듬/반주 판단은 5축 분석 완료 ${stats.completeAnalysisCount}곡과 세부 분석 보유 ${stats.detailedCount}곡을 더 우선합니다.`,
           "- 아래 코드는 원곡 복제가 아니라 선택곡 분위기를 바탕으로 만든 새 곡용 설계안입니다.",
           "",
           "[코드/화성 우선 설계]",
