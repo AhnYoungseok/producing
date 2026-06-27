@@ -1185,7 +1185,7 @@
         `https://raw.githubusercontent.com/${REPO}/main/cloud_ledger/song_library.json`;
       const LEDGER_CDN_URL =
         `https://cdn.jsdelivr.net/gh/${REPO}@main/cloud_ledger/song_library.json`;
-      const MIN_LEDGER_TOTAL = 28164;
+      const MIN_LEDGER_TOTAL = 38204;
       const SELECTION_KEY = "hit-song-lab-selected-v2";
       const CONCEPT_KEY = "hit-song-lab-concept-v1";
 
@@ -1213,6 +1213,7 @@
         { id: "latest", label: "최신 추가" },
         { id: "kr", label: "한국곡" },
         { id: "jp", label: "J-pop/일본곡" },
+        { id: "jazz", label: "재즈 명곡/스탠더드" },
         { id: "lyrical", label: "서정 팝/발라드" },
         { id: "us", label: "US 싱글 차트형" },
         { id: "kpop", label: "K-pop 글로벌형" },
@@ -1312,7 +1313,7 @@
           hint: "1개",
           max: 1,
           shape: "pill",
-          options: ["피아노 발라드", "어쿠스틱 팝", "90-110 BPM 미드템포", "120 BPM 댄스팝", "R&B 팝", "K-pop 글로벌", "J-pop 발라드", "J-rock 팝", "city pop 감성", "country-pop", "synth soft pop"],
+          options: ["피아노 발라드", "어쿠스틱 팝", "90-110 BPM 미드템포", "120 BPM 댄스팝", "R&B 팝", "K-pop 글로벌", "J-pop 발라드", "J-rock 팝", "city pop 감성", "country-pop", "synth soft pop", "재즈 스탠더드", "재즈 발라드", "스윙/빅밴드", "보사노바", "소울 재즈"],
         },
         {
           id: "trend",
@@ -1333,6 +1334,15 @@
       ];
 
       const archetypeRules = [
+        {
+          code: "JZ",
+          name: "재즈 스탠더드 서정형",
+          matches: ["재즈 스탠더드", "재즈 발라드", "스윙/빅밴드", "보사노바", "소울 재즈", "피아노 발라드", "city pop 감성", "그리움", "후회", "차분하지만 깊음"],
+          songTerms: ["jazz", "musicbrainz", "standard", "swing", "bebop", "bossa", "blues", "modal", "ii-v-i"],
+          brief: "감정을 크게 설명하지 않고, 세련된 화성 변화와 절제된 한 문장으로 오래 남기는 유형.",
+          voice: "멜로디는 쉽게 부를 수 있게 두고, 밑의 코드는 ii-V-I, 세컨더리 도미넌트, 백도어 진행으로 감정의 결을 깊게 만듭니다.",
+          titleShape: "오래된 장면, 시간, 밤, 기억을 담은 짧은 명사형 또는 낮게 말하는 문장형 제목",
+        },
         {
           code: "QH",
           name: "조용한 회복형",
@@ -1879,6 +1889,7 @@
         if (preset === "us") return country === "us" || body.includes("billboard") || body.includes("hot 100");
         if (preset === "kr") return country === "kr" || country.includes("korea") || genre.includes("korean");
         if (preset === "jp") return country === "jp" || country.includes("japan") || genre.includes("japanese") || genre.includes("j pop") || genre.includes("j-pop") || body.includes("oricon");
+        if (preset === "jazz") return genre.includes("jazz") || body.includes("musicbrainz") || body.includes("jazz") || hook.includes("ii-v-i");
         if (preset === "kpop") return country.includes("korea") || country === "kr" || genre.includes("k pop") || genre.includes("kpop");
         if (preset === "lyrical") return genre.includes("ballad") || genre.includes("soft") || genre.includes("lyrical") || lyricTheme.includes("longing") || lyricTheme.includes("regret") || lyricTheme.includes("healing") || lyricTheme.includes("intimate");
         if (preset === "dance") return genre.includes("dance") || (bpm && bpm >= 118);
@@ -2256,6 +2267,7 @@
         if (archetype.code === "KB" && (country === "kr" || source.includes("melon"))) score += 30;
         if (archetype.code === "JP" && (country === "jp" || source.includes("oricon") || genre.includes("japanese"))) score += 32;
         if (archetype.code === "US" && (source.includes("billboard") || source.includes("hot 100"))) score += 28;
+        if (archetype.code === "JZ" && (genre.includes("jazz") || source.includes("musicbrainz") || body.includes("jazz"))) score += 42;
         if (["QH", "EP", "OC", "AR", "JW", "ST", "CL", "BT"].includes(archetype.code) && (genre.includes("ballad") || genre.includes("soft"))) score += 26;
         if (["FN", "YN", "OH", "US", "MX"].includes(archetype.code) && (genre.includes("dance") || genre.includes("pop"))) score += 18;
         if (["RB"].includes(archetype.code) && (genre.includes("r&b") || genre.includes("hip") || genre.includes("rap"))) score += 24;
@@ -2463,6 +2475,15 @@
         const archetype = resolveArchetype();
         const genre = normalize(commonValue(songs, (song) => song.genre));
         const avg = averageBpmNumber(songs);
+        if (archetype.code === "JZ" || genre.includes("jazz")) {
+          return {
+            archetype,
+            lane: "재즈 스탠더드 기반 서정 팝/발라드",
+            promise: archetype.brief,
+            titleShape: archetype.titleShape || "밤, 기억, 시간, 오래된 장면을 담은 짧은 제목",
+            hookRule: `${archetype.voice} 코러스는 쉽게, 코드 진행은 ii-V-I와 백도어/트라이톤 대리화음으로 깊게 설계합니다.`,
+          };
+        }
         if (genre.includes("ballad") || genre.includes("soft") || genre.includes("ost") || (avg && avg < 95)) {
           return {
             archetype,
@@ -2659,14 +2680,74 @@
         return "C major / A minor 또는 F major / D minor";
       }
 
+      function hasJazzReference(songs) {
+        const archetype = resolveArchetype();
+        if (archetype.code === "JZ") return true;
+        return songs.some((song) => {
+          const body = normalize(`${song.genre} ${song.chart_source} ${song.source_type} ${song.chord_progression} ${song.hook_type}`);
+          return body.includes("jazz") || body.includes("musicbrainz") || body.includes("ii-v-i") || body.includes("bossa") || body.includes("swing");
+        });
+      }
+
+      function jazzHarmonyBlueprint(songs) {
+        const sourceChords = chordSourceSummary(songs);
+        return [
+          "[재즈 히트곡 화성 우선 참조]",
+          `- 참조 코드 표본: ${sourceChords}`,
+          "- 원칙: 멜로디는 팝처럼 선명하게, 화성은 재즈처럼 깊게 갑니다. 실제 곡을 베끼지 않고 ii-V-I, 세컨더리 도미넌트, 백도어 도미넌트, 트라이톤 대리화음, 디미니시드 패싱만 가져옵니다.",
+          "",
+          "1) Verse 8마디: 서정 재즈 발라드형, Eb major",
+          "| Ebmaj9 | G7alt | Cm9 | F13 |",
+          "| Fm9 | Bb13(b9) | Ebmaj9/G - Abmaj9 | Abm9 - Db13 |",
+          "- 기능: Imaj9 - V/vi alt - vi9 - V/V - ii9 - V13 - I6/IV - ivm9/bVII13 백도어.",
+          "- 쓰임: 첫 네 마디는 고백을 억제하고, 7-8마디의 Abm9-Db13이 말하지 못한 후회를 고급스럽게 밀어줍니다.",
+          "",
+          "2) Pre-Chorus 8마디: ii-V 연쇄로 감정 상승",
+          "| Gm7 C7alt | Fm9 Bb13 | Em7b5 A7alt | Dm7b5 G7alt |",
+          "| Cm9 F13 | Bbm9 Eb13 | Abmaj9 | Fm9 Bb13 |",
+          "- 기능: iii-VI-ii-V, 반음 하행 ii-V, vi로 살짝 어둡게 갔다가 IVmaj9에서 넓어집니다.",
+          "- 쓰임: 보컬 멜로디는 3도나 9도에 걸어두고, 베이스는 G-F-E-D-C-Bb-Ab-F로 내려가게 하면 감정이 설명 없이 깊어집니다.",
+          "",
+          "3) Chorus 8마디: 팝 가독성 + 재즈 컬러",
+          "| Abmaj9 | Gm7 C7alt | Fm9 Bb13 | Eb6/9 |",
+          "| Abmaj9 Abm6 | Gm7 C7b9 | Fm9 Bb13 | Eb6/9 |",
+          "- 기능: IVmaj9에서 코러스를 열어 밝게 보이게 하고, 5마디 Abm6은 병행단조 색채, 6-8마디는 iii-VI-ii-V-I로 안정 착지.",
+          "- 쓰임: 제목 문장은 1마디 또는 4마디에 놓고, 마지막 반복에서는 Bb13을 Bb7sus4-Bb7로 단순화해 대중성을 확보합니다.",
+          "",
+          "4) Bridge 8마디: 리듬 체인지/스윙 참조",
+          "| Eb6 C7 | Fm7 Bb7 | Gm7 C7 | Fm7 Bb7 |",
+          "| G7alt | C7alt | F7alt | Bb13 |",
+          "- 기능: I-VI-ii-V 반복 뒤 브리지에서 III7-VI7-II7-V7 도미넌트 체인.",
+          "- 쓰임: 편곡을 잠깐 스윙/브러시로 바꾸면 곡의 품격이 올라가고, 마지막 Bb13에서 원래 팝 코러스로 돌아올 수 있습니다.",
+          "",
+          "5) Jazz blues/소울 재즈 옵션, F",
+          "| F7 | Bb13 | F7 | Cm7 F7 |",
+          "| Bb13 | Bdim7 | F7/A D7alt | Gm7 C7 |",
+          "| Am7 D7alt | Gm7 C7 | F7 D7alt | Gm7 C7alt |",
+          "- 쓰임: 너무 발라드로 가라앉을 때 2마디 리프를 만들고, 이 진행을 후렴 뒤 태그나 간주에 씁니다.",
+          "",
+          "6) Bossa/Latin 옵션, C",
+          "| Dm9 G13 | Cmaj9 A7alt | Dm9 G13 | C6/9 |",
+          "| F#m7b5 B7b9 | Em9 A13 | Dm9 G13 | C6/9 |",
+          "- 쓰임: 잔잔하지만 촌스럽지 않은 로맨틱/도시형 곡에 좋습니다. 리듬은 과하게 라틴으로 밀지 말고 기타 싱코페이션만 빌립니다.",
+          "",
+          "7) 보이싱 우선순위",
+          "- 피아노/기타는 루트보다 3도, 7도, 9도, 13도를 먼저 잡습니다.",
+          "- 보컬 멜로디가 3도에 있으면 안정, 9도에 있으면 서정, #11에 있으면 현대적인 쓸쓸함이 납니다.",
+          "- 재즈 코드는 복잡하지만 탑라인은 2-5음 안에서 반복되는 쉬운 후크로 고정해야 합니다.",
+        ].join("\n");
+      }
+
       function harmonicBlueprint(songs) {
         const dominantGenre = normalize(commonValue(songs, (song) => song.genre));
         const avg = averageBpmNumber(songs);
         const isSoft = dominantGenre.includes("ballad") || dominantGenre.includes("soft") || (avg && avg < 95);
         const tonalCenter = inferKeyCenter(songs);
         const emotionalColor = isSoft ? "서정 팝/발라드" : "멜로딕 팝";
+        const jazzPlan = hasJazzReference(songs) ? `${jazzHarmonyBlueprint(songs)}\n\n[팝 적용 보조안]` : "";
 
         return [
+          jazzPlan,
           `- 원곡 코드 참고: ${chordSourceSummary(songs)}`,
           `- 새 곡 권장 중심키: ${tonalCenter}`,
           `- 화성 목표: ${emotionalColor} 기준으로 I, vi, IV, V를 뼈대로 잡고 add9, maj7, sus4, 세컨더리 도미넌트로 감정선을 만듭니다.`,
@@ -2708,10 +2789,29 @@
         ].join("\n");
       }
 
+      function jazzStructureBlueprint() {
+        return [
+          "[재즈 스탠더드식 구조 우선안]",
+          "- 큰 틀: Intro 4마디 - Head/AABA 32마디 - Verse 축약 - Chorus 확장 - Solo/Interlude 8마디 - Final Head/Chorus - Tag.",
+          "- 팝으로 바꿀 때는 Head를 Verse+Chorus로 나누고, AABA의 B파트를 Pre-Chorus 또는 Bridge로 씁니다.",
+          "0:00 Intro 4마디: 피아노/기타로 ii-V-I의 마지막 2마디만 보여주고, 멜로디 핵심 리듬을 악기 큐로 둡니다.",
+          "0:12 A1 8마디: 낮은 음역의 첫 장면. 코드 밀도는 maj9/min9 정도만 열고, 제목은 아직 숨깁니다.",
+          "0:36 A2 8마디: 같은 멜로디 윤곽을 반복하되 세컨더리 도미넌트나 디미니시드 패싱으로 감정의 미세한 균열을 만듭니다.",
+          "0:58 B/Pre 8마디: 도미넌트 체인 또는 반음 하행 ii-V로 긴장을 올립니다. 여기서 가사의 진짜 질문을 던집니다.",
+          "1:20 Chorus/A3 8-16마디: 제목 훅을 1마디 안에 놓고, 4마디 또는 8마디에서 I6/9로 착지합니다.",
+          "1:52 Interlude/Solo 8마디: 보컬 멜로디를 색소폰/기타/피아노가 짧게 변주합니다. 길게 솔로하지 말고 훅의 그림자만 남깁니다.",
+          "2:12 Bridge 8마디: 리듬 체인지식 III7-VI7-II7-V7 또는 bVII13 백도어로 시점을 바꿉니다.",
+          "2:36 Final Chorus 16마디: 첫 8마디는 단순 팝 코러스, 뒤 8마디는 재즈 보이싱과 대답 보컬로 확장합니다.",
+          "3:08 Tag 4마디: 제목 마지막 단어를 2회 이하로 반복하고, 마지막 화음은 maj9 또는 6/9로 여운을 둡니다.",
+        ].join("\n");
+      }
+
       function structureBlueprint(songs) {
         const avg = averageBpmNumber(songs);
         const tempoNote = avg ? `${avg} BPM 근처` : "80-105 BPM ballad 또는 105-124 BPM soft pop";
+        const jazzPlan = hasJazzReference(songs) ? `${jazzStructureBlueprint()}\n\n[팝 구조 보조안]` : "";
         return [
+          jazzPlan,
           `- 목표 템포: ${tempoNote}. 너무 느리면 8비트 하이햇이나 기타 아르페지오로 흐름을 유지합니다.`,
           "0:00 Intro 4마디: 코드 루프의 첫 2마디만 보여주고, 훅 리듬의 그림자를 악기 모티프로 짧게 둡니다.",
           "0:12 Verse 1 8마디: 낮은 음역, 짧은 문장, 코드 변화는 크게 움직이지 않게 둡니다.",
