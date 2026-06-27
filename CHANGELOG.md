@@ -25,6 +25,7 @@
 
 ### Changed
 
+- Updated the public-site concept label to the softer `감성 / 말투`.
 - Changed lyric analysis completion so structure-only analysis can count as analyzed while still showing that the original chorus/hook text must be manually verified before any excerpt is displayed.
 - Upgraded the public-site concept finder from a single coarse persona label into an 8-axis visual persona model with detailed subtype codes, coordinate map, score bars, rationale notes, and nearest archetype ranking.
 - Strengthened source-safe harmony, melody, and hook analyzers so user-provided chords/lyrics produce detailed section functions, tension/release notes, reharmonization options, hook design, melody contour/rhythm summaries, and explicit confidence/source labels without using YouTube audio extraction.
