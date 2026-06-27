@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hit Song Lab</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --panel-soft: #eef3f8;
+        --text: #111827;
+        --muted: #5b6575;
+        --line: #d9e1ec;
+        --accent: #0f766e;
+        --accent-strong: #115e59;
+        --danger: #b42318;
+        --shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      a {
+        color: var(--accent-strong);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .shell {
+        width: min(1440px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 28px 0 48px;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 4vw, 44px);
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin: 9px 0 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      .status {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 13px;
+        box-shadow: var(--shadow);
+      }
+
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .dot.error {
+        background: var(--danger);
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin: 16px 0;
+      }
+
+      .card,
+      .section {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .card {
+        min-height: 112px;
+        padding: 16px;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .value {
+        margin-top: 7px;
+        font-size: 31px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .hint {
+        margin-top: 9px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 14px;
+        align-items: start;
+      }
+
+      .section {
+        overflow: hidden;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 17px;
+        letter-spacing: 0;
+      }
+
+      .tools {
+        display: grid;
+        grid-template-columns: minmax(210px, 1fr) 150px 150px;
+        gap: 8px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel-soft);
+      }
+
+      input,
+      select,
+      button {
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        font: inherit;
+        font-size: 14px;
+      }
+
+      input,
+      select {
+        padding: 0 10px;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 0 12px;
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 700;
+      }
+
+      button:hover {
+        background: var(--accent-strong);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        min-width: 940px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8fafc;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      tr:hover td {
+        background: #fbfdff;
+      }
+
+      .song-title {
+        font-weight: 800;
+      }
+
+      .artist {
+        margin-top: 3px;
+        color: var(--muted);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        min-height: 24px;
+        padding: 3px 8px;
+        border: 1px solid #c7d8e4;
+        border-radius: 999px;
+        background: #edf7f6;
+        color: #164e63;
+        font-size: 12px;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+      }
+
+      .side {
+        display: grid;
+        gap: 14px;
+      }
+
+      .side .section-body {
+        padding: 14px 16px;
+      }
+
+      .bar-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .bar-row {
+        display: grid;
+        grid-template-columns: 92px 1fr 34px;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+
+      .bar-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--muted);
+      }
+
+      .bar-track {
+        height: 9px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+      }
+
+      .empty,
+      .error-box {
+        padding: 20px 16px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .error-box {
+        color: var(--danger);
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .link-button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .small {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      @media (max-width: 1060px) {
+        .cards {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .side {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .shell {
+          width: min(100% - 20px, 1440px);
+          padding-top: 18px;
+        }
+
+        header {
+          display: block;
+        }
+
+        .status {
+          margin-top: 14px;
+        }
+
+        .cards,
+        .side {
+          grid-template-columns: 1fr;
+        }
+
+        .tools {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <h1>Hit Song Lab</h1>
+          <p class="subtitle">
+            GitHub Actions가 10분마다 reference song을 누적하고, 이 화면은 GitHub
+            원장을 직접 읽습니다. PC 전원이 꺼져 있어도 데이터는 클라우드에서
+            계속 쌓입니다.
+          </p>
+        </div>
+        <div class="status" id="status">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">데이터 불러오는 중</span>
+        </div>
+      </header>
+
+      <section class="cards" aria-label="요약">
+        <article class="card">
+          <div class="label">누적 총합</div>
+          <div class="value" id="totalCount">-</div>
+          <div class="hint">로컬 기준선 + 클라우드 신규곡</div>
+        </article>
+        <article class="card">
+          <div class="label">공개 표시곡</div>
+          <div class="value" id="visibleCount">-</div>
+          <div class="hint">GitHub 원장에 제목이 공개된 신규곡</div>
+        </article>
+        <article class="card">
+          <div class="label">기준선</div>
+          <div class="value" id="baselineCount">-</div>
+          <div class="hint">기존 로컬 DB는 중복 방지용 해시로만 보관</div>
+        </article>
+        <article class="card">
+          <div class="label">최근 갱신</div>
+          <div class="value" id="updatedAt">-</div>
+          <div class="hint" id="nextRun">10분 주기 자동 실행</div>
+        </article>
+      </section>
+
+      <section class="grid">
+        <section class="section">
+          <div class="section-head">
+            <h2>곡 목록</h2>
+            <button id="refreshButton" type="button">새로고침</button>
+          </div>
+          <div class="tools">
+            <input id="searchInput" type="search" placeholder="곡명, 아티스트, 후크 검색" />
+            <select id="countryFilter" aria-label="국가 필터">
+              <option value="">전체 국가</option>
+            </select>
+            <select id="genreFilter" aria-label="장르 필터">
+              <option value="">전체 장르</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>추가일</th>
+                  <th>곡명 / 아티스트</th>
+                  <th>국가 / 장르</th>
+                  <th>연도</th>
+                  <th>BPM / Key</th>
+                  <th>후크</th>
+                  <th>프로듀서 메모</th>
+                </tr>
+              </thead>
+              <tbody id="songRows">
+                <tr>
+                  <td colspan="7" class="empty">데이터를 불러오는 중입니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="side">
+          <section class="section">
+            <div class="section-head">
+              <h2>장르 분포</h2>
+            </div>
+            <div class="section-body">
+              <div class="bar-list" id="genreBars"></div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2>후크 유형</h2>
+            </div>
+            <div class="section-body">
+              <div class="bar-list" id="hookBars"></div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2>BPM 구간</h2>
+            </div>
+            <div class="section-body">
+              <div class="bar-list" id="bpmBars"></div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2>연결</h2>
+            </div>
+            <div class="section-body">
+              <div class="links">
+                <a class="link-button" href="https://github.com/AhnYoungseok/producing/actions" target="_blank" rel="noreferrer">자동 실행 로그</a>
+                <a class="link-button" href="https://github.com/AhnYoungseok/producing/blob/main/cloud_ledger/song_library.json" target="_blank" rel="noreferrer">GitHub 원장</a>
+                <a class="link-button" href="https://docs.google.com/spreadsheets/d/1U_WUMnel9AZv-7YymqMRMDw5iX_MI-M3r2Yw0e7umNs/edit" target="_blank" rel="noreferrer">Google Sheet</a>
+              </div>
+              <p class="small">
+                스프레드시트 반영은 GitHub Secrets의 Google 서비스 계정 설정이 있을
+                때 같이 실행됩니다. 이 화면은 원장을 직접 읽기 때문에 시트 연결이
+                잠시 끊겨도 누적 상태를 확인할 수 있습니다.
+              </p>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      const LEDGER_URL =
+        "https://raw.githubusercontent.com/AhnYoungseok/producing/main/cloud_ledger/song_library.json";
+
+      const state = {
+        ledger: null,
+        songs: [],
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function compactDate(value) {
+        if (!value) return "-";
+        if (/^\d{4}\.\d{1,2}\.\d{1,2}$/.test(value)) return value;
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
+      }
+
+      function number(value) {
+        return Number(value || 0).toLocaleString("ko-KR");
+      }
+
+      function setStatus(text, isError = false) {
+        $("statusText").textContent = text;
+        $("statusDot").classList.toggle("error", isError);
+      }
+
+      async function loadLedger() {
+        setStatus("데이터 불러오는 중");
+        const response = await fetch(`${LEDGER_URL}?cache=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          throw new Error(`원장 응답 오류: ${response.status}`);
+        }
+        return response.json();
+      }
+
+      function sortSongs(songs) {
+        return [...songs].sort((a, b) => {
+          const left = new Date(a.added_at || a.added_date || 0).getTime();
+          const right = new Date(b.added_at || b.added_date || 0).getTime();
+          return right - left;
+        });
+      }
+
+      function uniqueOptions(songs, key) {
+        return [...new Set(songs.map((song) => song[key]).filter(Boolean))].sort((a, b) =>
+          String(a).localeCompare(String(b), "ko")
+        );
+      }
+
+      function fillSelect(id, values, label) {
+        const select = $(id);
+        const current = select.value;
+        select.innerHTML = `<option value="">${label}</option>`;
+        values.forEach((value) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.appendChild(option);
+        });
+        select.value = values.includes(current) ? current : "";
+      }
+
+      function matchesSearch(song, query) {
+        if (!query) return true;
+        const haystack = [
+          song.title,
+          song.artist,
+          song.genre,
+          song.country,
+          song.hook_type,
+          song.hook_cue,
+          song.producer_takeaway,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(query.toLowerCase());
+      }
+
+      function filteredSongs() {
+        const query = $("searchInput").value.trim();
+        const country = $("countryFilter").value;
+        const genre = $("genreFilter").value;
+        return state.songs.filter((song) => {
+          return (
+            matchesSearch(song, query) &&
+            (!country || song.country === country) &&
+            (!genre || song.genre === genre)
+          );
+        });
+      }
+
+      function renderRows() {
+        const songs = filteredSongs();
+        const tbody = $("songRows");
+        if (!songs.length) {
+          tbody.innerHTML = `<tr><td colspan="7" class="empty">조건에 맞는 곡이 없습니다.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = songs
+          .map((song) => {
+            const bpmKey = [song.bpm ? `${song.bpm} BPM` : null, song.key].filter(Boolean).join(" / ") || "-";
+            const hook = [song.hook_cue, song.hook_type, song.hook_location]
+              .filter(Boolean)
+              .map(escapeHtml)
+              .join("<br />");
+            return `
+              <tr>
+                <td><span class="pill">${escapeHtml(compactDate(song.added_date || song.added_at))}</span></td>
+                <td>
+                  <div class="song-title">${escapeHtml(song.title)}</div>
+                  <div class="artist">${escapeHtml(song.artist)}</div>
+                </td>
+                <td>${escapeHtml(song.country || "-")}<br />${escapeHtml(song.genre || "-")}</td>
+                <td>${escapeHtml(song.release_year || "-")}</td>
+                <td>${escapeHtml(bpmKey)}</td>
+                <td>${hook || "-"}</td>
+                <td>${escapeHtml(song.producer_takeaway || song.why_hook_works || "-")}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function countBy(songs, mapper) {
+        const counts = new Map();
+        songs.forEach((song) => {
+          const key = mapper(song) || "미분류";
+          counts.set(key, (counts.get(key) || 0) + 1);
+        });
+        return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko"));
+      }
+
+      function bpmBucket(song) {
+        const bpm = Number(song.bpm);
+        if (!bpm) return "미상";
+        if (bpm < 90) return "< 90";
+        if (bpm < 105) return "90-104";
+        if (bpm < 120) return "105-119";
+        if (bpm < 135) return "120-134";
+        return "135+";
+      }
+
+      function renderBars(id, rows) {
+        const target = $(id);
+        if (!rows.length) {
+          target.innerHTML = `<div class="small">데이터 없음</div>`;
+          return;
+        }
+        const max = Math.max(...rows.map((row) => row[1]));
+        target.innerHTML = rows
+          .slice(0, 8)
+          .map(([label, count]) => {
+            const width = Math.max(6, Math.round((count / max) * 100));
+            return `
+              <div class="bar-row" title="${escapeHtml(label)}">
+                <div class="bar-label">${escapeHtml(label)}</div>
+                <div class="bar-track"><div class="bar-fill" style="width: ${width}%"></div></div>
+                <div>${number(count)}</div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderSummary(ledger) {
+        const songs = state.songs;
+        const baselineCount = Number(ledger.baseline?.count || 0);
+        const total = Number(ledger.total_after_baseline || baselineCount + songs.length);
+        $("totalCount").textContent = number(total);
+        $("visibleCount").textContent = number(songs.length);
+        $("baselineCount").textContent = number(baselineCount);
+        $("updatedAt").textContent = compactDate(ledger.updated_at);
+        $("nextRun").textContent = "GitHub Actions 10분 주기";
+      }
+
+      function renderAll() {
+        renderSummary(state.ledger);
+        fillSelect("countryFilter", uniqueOptions(state.songs, "country"), "전체 국가");
+        fillSelect("genreFilter", uniqueOptions(state.songs, "genre"), "전체 장르");
+        renderRows();
+        renderBars("genreBars", countBy(state.songs, (song) => song.genre));
+        renderBars("hookBars", countBy(state.songs, (song) => song.hook_type));
+        renderBars("bpmBars", countBy(state.songs, bpmBucket));
+      }
+
+      async function refresh() {
+        try {
+          const ledger = await loadLedger();
+          state.ledger = ledger;
+          state.songs = sortSongs(ledger.songs || []);
+          renderAll();
+          setStatus(`정상 동기화: ${compactDate(ledger.updated_at)}`);
+        } catch (error) {
+          console.error(error);
+          $("songRows").innerHTML = `<tr><td colspan="7" class="error-box">${escapeHtml(
+            error.message
+          )}</td></tr>`;
+          setStatus("원장 불러오기 실패", true);
+        }
+      }
+
+      $("searchInput").addEventListener("input", renderRows);
+      $("countryFilter").addEventListener("change", renderRows);
+      $("genreFilter").addEventListener("change", renderRows);
+      $("refreshButton").addEventListener("click", refresh);
+
+      refresh();
+      setInterval(refresh, 5 * 60 * 1000);
+    </script>
+  </body>
+</html>

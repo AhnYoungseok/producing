@@ -5,13 +5,40 @@ This project is designed to run from GitHub while the local PC is off.
 ## Target Architecture
 
 - GitHub Actions: adds 10 reference songs every 10 minutes.
+- GitHub Pages: always-on browser dashboard.
 - Google Sheets: primary spreadsheet mirror when service-account secrets are configured.
-- Render: always-on FastAPI backend.
-- Vercel: Next.js frontend.
+- Render: optional FastAPI backend for the full local-style app.
+- Vercel: optional Next.js frontend for the full local-style app.
 
-GitHub Actions already writes `cloud_ledger/song_library.json`. The deployed backend reads that ledger by default. When Google credentials are configured, it can read the Google Sheet directly by setting `CLOUD_LIBRARY_SOURCE=google_sheet`.
+GitHub Actions already writes `cloud_ledger/song_library.json`. The GitHub Pages dashboard reads that ledger directly, so the public viewer does not need a running PC, Render instance, or Vercel deployment. When Google credentials are configured, the workflow also mirrors the same accumulated data into Google Sheets.
 
-## 1. Google Sheet Secrets
+## 1. Always-On Browser Dashboard
+
+Primary URL:
+
+```text
+https://ahnyoungseok.github.io/producing/
+```
+
+The dashboard is deployed by `.github/workflows/pages.yml` from `public-site/`.
+
+It shows:
+
+- accumulated total count
+- public cloud song rows
+- baseline local DB count
+- added date beside each song
+- genre, hook, and BPM summary charts
+
+If the URL does not open after the first push, enable GitHub Pages once:
+
+```text
+Repository Settings > Pages > Source: GitHub Actions
+```
+
+After that, no local PC process is required for the browser dashboard.
+
+## 2. Google Sheet Secrets
 
 In GitHub repo settings, add:
 
@@ -22,7 +49,9 @@ GOOGLE_SERVICE_ACCOUNT_JSON=<full service account JSON>
 
 Share the Google Sheet with the service account `client_email` as an editor.
 
-## 2. Backend On Render
+Without these secrets, GitHub Actions still accumulates `cloud_ledger/song_library.json`, but the spreadsheet mirror cannot update.
+
+## 3. Optional Backend On Render
 
 Create a Render Blueprint from this GitHub repository:
 
@@ -59,7 +88,7 @@ AUTO_REFERENCE_BATCH_ENABLED=false
 AUTO_REFERENCE_BATCH_RUN_ON_STARTUP=false
 ```
 
-## 3. Frontend On Vercel
+## 4. Optional Frontend On Vercel
 
 Import the same GitHub repository into Vercel.
 
@@ -78,7 +107,13 @@ Set:
 NEXT_PUBLIC_API_BASE_URL=https://<your-render-service>.onrender.com/api
 ```
 
-## 4. Check URLs
+## 5. Check URLs
+
+Always-on GitHub Pages viewer:
+
+```text
+https://ahnyoungseok.github.io/producing/
+```
 
 Backend health:
 
