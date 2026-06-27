@@ -2523,6 +2523,58 @@
           .join("");
       }
 
+      function firstConceptLabel(id, fallback) {
+        return selectedConceptLabels(id)[0] || fallback;
+      }
+
+      function hookMood(archetype) {
+        const code = archetype.code;
+        if (["QH", "WG", "BR", "DW", "SS"].includes(code)) {
+          return { action: "다시 일어서는", pivot: "무너지지 않는", color: "회복", ending: "오늘의 나" };
+        }
+        if (["LG", "CF", "NB", "AA", "YN", "SD"].includes(code)) {
+          return { action: "이제야 말하는", pivot: "숨기지 않는", color: "고백", ending: "너에게 가는 나" };
+        }
+        if (["EP", "ST", "DF", "AR"].includes(code)) {
+          return { action: "조용히 보내는", pivot: "붙잡지 않는", color: "작별", ending: "돌아서는 나" };
+        }
+        if (["FN", "RX", "OH", "US", "MX", "LB"].includes(code)) {
+          return { action: "문을 열고 나가는", pivot: "가볍게 웃는", color: "해방", ending: "움직이는 나" };
+        }
+        if (["OC", "JW", "MT", "BT", "JP", "KB", "CL"].includes(code)) {
+          return { action: "아직 기억하는", pivot: "기다림을 숨기는", color: "여운", ending: "그때의 나" };
+        }
+        if (["RB", "CH", "IR"].includes(code)) {
+          return { action: "농담처럼 버티는", pivot: "아닌 척하는", color: "반어", ending: "웃고 있는 나" };
+        }
+        return { action: "천천히 바라보는", pivot: "말을 아끼는", color: "고독", ending: "혼자 남은 나" };
+      }
+
+      function lyricHookExamples(direction) {
+        const archetype = direction?.archetype || resolveArchetype();
+        const mood = hookMood(archetype);
+        const emotion = firstConceptLabel("emotion", mood.color);
+        const scene = firstConceptLabel("situation", "이 밤");
+        const target = firstConceptLabel("relationship", "너");
+        const desire = firstConceptLabel("desire", "말하고 싶음");
+        const wound = firstConceptLabel("wound", "말하지 못한 진심");
+        const titleShape = firstConceptLabel("title", archetype.titleShape || "짧은 제목");
+        const targetWord = target.includes("나 자신") ? "나" : "너";
+        const directWord = target.includes("가족") ? "우리" : targetWord;
+        return [
+          `${scene}이 끝나도 나는 ${mood.action} 중이야`,
+          `${directWord}를 놓친 게 아니라 ${emotion}을 배우는 중이야`,
+          `아무렇지 않은 척, 제일 크게 ${directWord}를 부르고 있어`,
+          `${wound} 하나가 아직도 내 후렴을 밀어 올려`,
+          `늦었지만 오늘은 ${desire}을 숨기지 않을래`,
+          `${mood.pivot} 마음으로 ${directWord} 앞에 다시 서`,
+          `사라진 줄 알았던 내가 ${scene}에서 나를 찾아`,
+          `${titleShape}처럼 짧게 말해도 전부 들리게 해`,
+          `끝난 이야기가 아니라 ${mood.ending}을 여는 첫 줄이야`,
+          `${archetype.name}의 마음으로, 울지 않고 제일 깊게 말할게`,
+        ];
+      }
+
       function conceptBrief(songs) {
         const { profile, concept, idea, selectedLine } = conceptState();
         const direction = conceptDirection(songs);
@@ -2543,7 +2595,15 @@
             return `  ${index + 1}. ${song.title} - ${song.artist}${bits ? ` (${bits})` : ""}`;
           })
           .join("\n");
+        const hookExamples = lyricHookExamples(direction)
+          .slice(0, 10)
+          .map((line, index) => `  ${index + 1}. ${line}`)
+          .join("\n");
         return [
+          "[가사 후크 예시 10]",
+          "- 아래 문장은 참고곡 가사가 아니라 현재 컨셉에서 새로 만든 후크 초안입니다.",
+          hookExamples,
+          "",
           "[컨셉 먼저]",
           `- 인간상 유형: ${direction.archetype.name} (${direction.archetype.code}, 판정 ${direction.archetype.confidence})`,
           `- 유형 정의: ${direction.archetype.brief}`,
