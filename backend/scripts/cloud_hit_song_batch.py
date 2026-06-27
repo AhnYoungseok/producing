@@ -596,7 +596,7 @@ def _normalize(value: Any) -> str:
     text = str(value or "").casefold()
     text = re.sub(r"\[[^\]]*(remaster|official|music video|lyric|lyrics|live|cover|mv|4k|hd|ver\.?|version)[^\]]*\]", " ", text)
     text = re.sub(r"\([^\)]*(remaster|official|music video|lyric|lyrics|live|cover|mv|4k|hd|ver\.?|version)[^\)]*\)", " ", text)
-    return re.sub(r"[^0-9a-z가-힣]+", "", text)
+    return re.sub(r"[^0-9a-z가-힣ぁ-ゟ゠-ヿ㐀-䶿一-鿿]+", "", text)
 
 
 def _normalize_header(value: Any) -> str:
@@ -606,7 +606,7 @@ def _normalize_header(value: Any) -> str:
 def _normalize_artist(value: Any) -> str:
     text = str(value or "").casefold()
     text = re.sub(r"\b(feat\.?|ft\.?|with)\b.*$", " ", text)
-    return re.sub(r"[^0-9a-z가-힣]+", "", text)
+    return re.sub(r"[^0-9a-z가-힣ぁ-ゟ゠-ヿ㐀-䶿一-鿿]+", "", text)
 
 
 def _to_float(value: Any) -> float | None:

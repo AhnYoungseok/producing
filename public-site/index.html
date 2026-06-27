@@ -1155,7 +1155,7 @@
         `https://raw.githubusercontent.com/${REPO}/main/cloud_ledger/song_library.json`;
       const LEDGER_CDN_URL =
         `https://cdn.jsdelivr.net/gh/${REPO}@main/cloud_ledger/song_library.json`;
-      const MIN_LEDGER_TOTAL = 18144;
+      const MIN_LEDGER_TOTAL = 28164;
       const SELECTION_KEY = "hit-song-lab-selected-v2";
       const CONCEPT_KEY = "hit-song-lab-concept-v1";
 
@@ -1182,6 +1182,7 @@
         { id: "hit", label: "히트 우선" },
         { id: "latest", label: "최신 추가" },
         { id: "kr", label: "한국곡" },
+        { id: "jp", label: "J-pop/일본곡" },
         { id: "lyrical", label: "서정 팝/발라드" },
         { id: "us", label: "US 싱글 차트형" },
         { id: "kpop", label: "K-pop 글로벌형" },
@@ -1249,7 +1250,7 @@
           hint: "1개",
           max: 1,
           shape: "pill",
-          options: ["피아노 발라드", "어쿠스틱 팝", "90-110 BPM 미드템포", "120 BPM 댄스팝", "R&B 팝", "K-pop 글로벌", "country-pop", "synth soft pop"],
+          options: ["피아노 발라드", "어쿠스틱 팝", "90-110 BPM 미드템포", "120 BPM 댄스팝", "R&B 팝", "K-pop 글로벌", "J-pop 발라드", "J-rock 팝", "city pop 감성", "country-pop", "synth soft pop"],
         },
         {
           id: "trend",
@@ -1497,6 +1498,7 @@
 
         if (preset === "us") return country === "us" || body.includes("billboard") || body.includes("hot 100");
         if (preset === "kr") return country === "kr" || country.includes("korea") || genre.includes("korean");
+        if (preset === "jp") return country === "jp" || country.includes("japan") || genre.includes("japanese") || genre.includes("j pop") || genre.includes("j-pop") || body.includes("oricon");
         if (preset === "kpop") return country.includes("korea") || country === "kr" || genre.includes("k pop") || genre.includes("kpop");
         if (preset === "lyrical") return genre.includes("ballad") || genre.includes("soft") || genre.includes("lyrical") || lyricTheme.includes("longing") || lyricTheme.includes("regret") || lyricTheme.includes("healing") || lyricTheme.includes("intimate");
         if (preset === "dance") return genre.includes("dance") || (bpm && bpm >= 118);
