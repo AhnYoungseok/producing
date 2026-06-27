@@ -236,6 +236,10 @@ def _save_cloud_exports(ledger: dict[str, Any]) -> None:
     with SUMMARY_CSV_PATH.open("w", newline="", encoding="utf-8-sig") as file:
         writer = csv.writer(file)
         writer.writerows(summary_rows)
+    SHEET_CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
+    with (SHEET_CHUNKS_DIR / "summary_sheet.csv").open("w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerows(summary_rows)
     _save_sheet_chunks(songs)
 
 
