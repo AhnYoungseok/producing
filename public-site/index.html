@@ -2361,6 +2361,7 @@
                     ${detailCell("상황", song.speaker_situation)}
                     ${detailCell("구조", song.story_flow)}
                     ${detailCell("코드", song.chord_progression)}
+                    ${detailCell("코드 분석", songChordAnalysisSummary(song))}
                     ${detailCell("편곡", song.arrangement)}
                     ${detailCell("보컬/믹스", [song.vocal, song.mixing].filter(Boolean).join(" / "))}
                   </div>
@@ -2779,6 +2780,189 @@
           .join("\n");
       }
 
+      function chordTokens(raw) {
+        return String(raw || "")
+          .replace(/[|]/g, " ")
+          .split(/\s+|-/)
+          .map((token) => token.trim())
+          .filter(Boolean);
+      }
+
+      function chordPatternInfo(raw) {
+        const text = normalize(raw);
+        const tokens = chordTokens(raw);
+        const unique = [...new Set(tokens.map((token) => token.replace(/[(),]/g, "")))];
+        if (!raw || !tokens.length) {
+          return {
+            family: "원곡 코드 미확정",
+            functionText: "공개 코드가 없어 원곡 진행으로 단정하지 않습니다.",
+            density: "미확정",
+          };
+        }
+        if (text.includes("ii") && text.includes("v") && text.includes("i")) {
+          return {
+            family: "ii-V-I / 재즈 턴어라운드 계열",
+            functionText: "도미넌트 해소와 순환 진행이 핵심입니다. 새 곡에서는 7th/9th/13th 색만 가져오고 멜로디는 새로 씁니다.",
+            density: unique.length >= 6 ? "높음" : "중간",
+          };
+        }
+        if ((text.includes("iv") && text.includes("v") && text.includes("iii") && text.includes("vi")) || text.includes("g#m7") || text.includes("c#m")) {
+          return {
+            family: "IV-V-iii-vi 유예형",
+            functionText: "바로 I로 해소하지 않고 iii-vi로 감정을 늦게 풀어 J-pop/K-pop식 여운을 만듭니다.",
+            density: unique.length >= 5 ? "중간 이상" : "중간",
+          };
+        }
+        if (text.includes("vi") && text.includes("iv") && text.includes("i") && text.includes("v")) {
+          return {
+            family: "vi-IV-I-V 회상형",
+            functionText: "단조 출발 뒤 장조 해소로 회상, 회복, 그리움에 잘 맞습니다.",
+            density: unique.length >= 5 ? "중간" : "낮음",
+          };
+        }
+        if (text.includes("i") && text.includes("v") && text.includes("vi") && text.includes("iv")) {
+          return {
+            family: "I-V-vi-IV 대중 팝 순환형",
+            functionText: "친숙한 해상감이 장점입니다. 새 곡에서는 베이스 전위와 add9/sus로 차별화해야 합니다.",
+            density: "낮음-중간",
+          };
+        }
+        if (/[79]|maj|min|sus|add|#|b/.test(text)) {
+          return {
+            family: "컬러 코드 기반 팝/소울형",
+            functionText: "7th, add9, sus, altered 색채가 감정의 질감을 만듭니다. 탑라인은 단순하게 둬야 합니다.",
+            density: unique.length >= 6 ? "높음" : "중간",
+          };
+        }
+        return {
+          family: "기본 팝 순환형",
+          functionText: "반복 가능한 코드 루프가 중심입니다. 새 곡에서는 훅 리듬과 보컬 문장으로 차이를 만듭니다.",
+          density: unique.length >= 5 ? "중간" : "낮음",
+        };
+      }
+
+      function inferredChordPlanForSong(song) {
+        const body = normalize(
+          [
+            song.genre,
+            song.country,
+            song.chart_source,
+            song.source_type,
+            song.hook_type,
+            song.hook_location,
+            song.arrangement,
+            song.arrangement_build,
+            song.vocal,
+            song.hit_factor,
+            song.producer_takeaway,
+          ].join(" ")
+        );
+        const bpm = getBpm(song);
+        if (body.includes("jazz") || body.includes("bossa") || body.includes("swing") || body.includes("ii-v-i")) {
+          return {
+            label: "재즈/스탠더드 참고용",
+            progression: "| Dm9 G13 | Cmaj9 A7alt | Dm9 G13 | C6/9 |",
+            reason: "ii-V-I와 6/9 착지를 참고하되, 멜로디와 리듬은 새로 설계합니다.",
+          };
+        }
+        if (body.includes("j-pop") || body.includes("japanese") || body.includes("oricon")) {
+          return {
+            label: "J-pop 여운형",
+            progression: "| Aadd9 | B | G#m7 | C#m7 | F#m7 | Bsus4 - B | E | G#7/C |",
+            reason: "IV-V-iii-vi로 감정을 유예하고 V/vi로 다음 반복을 당깁니다.",
+          };
+        }
+        if (body.includes("k-pop") || body.includes("korean") || body.includes("korea") || body.includes("한국") || body.includes("post-chorus") || body.includes("performance hook")) {
+          return {
+            label: "K-pop 글로벌 훅형",
+            progression: "| Bbadd9 | C | Am7 | Dm7 | Gm7 | C | F/A | Bbadd9 - C |",
+            reason: "IV-V-iii-vi 뒤 ii-V-I6 해소를 넣어 코러스와 포스트훅을 분리합니다.",
+          };
+        }
+        if (body.includes("r&b") || body.includes("soul") || body.includes("groove")) {
+          return {
+            label: "R&B 소울 그루브형",
+            progression: "| Bbm9 | Gbmaj9 | Db/F | Ab13 | Ebm9 | F7alt | Bbm9 | Ab13 |",
+            reason: "minor9/maj9 색채와 V/vi altered로 보컬 여백을 만듭니다.",
+          };
+        }
+        if (body.includes("dance") || body.includes("synth") || (bpm && bpm >= 118)) {
+          return {
+            label: "댄스/신스 팝 루프형",
+            progression: "| Dm7 | Bbadd9 | F/A | C | Gm7 | A7/C# | Dm7 | C |",
+            reason: "4마디 반복성과 A7/C#의 당김으로 pre-drop/후렴 진입감을 만듭니다.",
+          };
+        }
+        if (body.includes("ballad") || body.includes("piano") || body.includes("strings") || (bpm && bpm < 96)) {
+          return {
+            label: "서정 발라드 변주형",
+            progression: "| Am9 | Fmaj7 | C/E | Gsus4 - G | Dm7 | E7/G# | Am7 | Fadd9 - G |",
+            reason: "vi 출발, V/vi, slash bass로 회상과 해소를 분리합니다.",
+          };
+        }
+        return {
+          label: "멜로딕 팝 기본 변주형",
+          progression: "| Cadd9 | G/B | Am7 | Fadd9 | Dm7 | Gsus4 - G | C/E | Fadd9 - G |",
+          reason: "대중적인 루프를 쓰되 전위와 add9로 새 곡 색을 만듭니다.",
+        };
+      }
+
+      function songChordAnalysis(song) {
+        const raw = String(song.chord_progression || "").trim();
+        const hasRaw = raw && raw.toLowerCase() !== "null";
+        const source = hasRaw ? "원곡/입력 코드 보유" : "원곡 코드 미확정";
+        const pattern = chordPatternInfo(raw);
+        const inferred = inferredChordPlanForSong(song);
+        const key = song.key || inferred.progression.match(/[A-G][b#]?\s*(major|minor)?/i)?.[0] || "보컬 레인지에 맞춰 조옮김";
+        const confidenceBase = normalize(song.data_confidence);
+        const confidence = hasRaw
+          ? confidenceBase === "low"
+            ? "Medium: 코드 표기는 있으나 출처 확인 필요"
+            : "High/Medium: 코드 표기 기반 분석"
+          : "Low: 공개 코드 미확정, 장르/BPM/후크 기반 추정";
+        return {
+          source,
+          raw: hasRaw ? raw : "미확정",
+          key,
+          family: hasRaw ? pattern.family : inferred.label,
+          functionText: hasRaw ? pattern.functionText : inferred.reason,
+          density: hasRaw ? pattern.density : "추정",
+          suggested: hasRaw ? transformChordForNewSong(raw, song) : inferred.progression,
+          confidence,
+        };
+      }
+
+      function transformChordForNewSong(raw, song) {
+        const pattern = chordPatternInfo(raw);
+        const inferred = inferredChordPlanForSong(song);
+        if (pattern.family.includes("ii-V-I")) return "| Dm9 G13 | Cmaj9 A7alt | Dm9 G13 | C6/9 |";
+        if (pattern.family.includes("IV-V-iii-vi")) return "| Aadd9 | B | G#m7 | C#m7 | F#m7 | Bsus4 - B | E | G#7/C |";
+        if (pattern.family.includes("vi-IV-I-V")) return "| Am9 | Fmaj7 | C/E | G | Dm7 | E7/G# | Am7 | Fadd9 - G |";
+        if (pattern.family.includes("I-V-vi-IV")) return "| Cadd9 | G/B | Am7 | Fadd9 | Dm7 | Gsus4 - G | C/E | Fadd9 - G |";
+        return inferred.progression;
+      }
+
+      function songChordAnalysisSummary(song) {
+        const analysis = songChordAnalysis(song);
+        return `${analysis.source} · ${analysis.family} · ${analysis.functionText} · 새 곡 적용: ${analysis.suggested} · 신뢰도: ${analysis.confidence}`;
+      }
+
+      function perSongChordAnalysisRows(songs, limit = 20) {
+        return sortByHitPriority(songs)
+          .slice(0, limit)
+          .map((song, index) => {
+            const analysis = songChordAnalysis(song);
+            return [
+              `  ${index + 1}. ${song.title} - ${song.artist}`,
+              `     - 원곡 코드: ${analysis.raw}`,
+              `     - 코드 출처/신뢰도: ${analysis.source} / ${analysis.confidence}`,
+              `     - 기능 분석: ${analysis.family}; ${analysis.functionText}`,
+              `     - 새 곡 적용 진행: ${analysis.suggested}`,
+            ].join("\n");
+          })
+          .join("\n");
+      }
+
       function adaptiveHookPlan(songs) {
         const profile = dominantReferenceProfile(songs);
         const stats = referenceStats(songs);
@@ -3170,6 +3354,9 @@
           "",
           "[유형 맞춤 히트곡 20]",
           referenceList || "  - 데이터 로딩 후 자동 추천됩니다.",
+          "",
+          "[추천곡별 코드진행 분석]",
+          perSongChordAnalysisRows(songs, 20) || "  - 추천곡이 로딩되면 곡별 코드 진행과 창작 적용 진행을 표시합니다.",
           "",
           "[20곡 통계 해석]",
           `- BPM: ${stats.avgBpm}, 범위 ${stats.range}`,
