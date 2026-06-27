@@ -260,6 +260,71 @@
         margin-top: 14px;
       }
 
+      .concept-lab {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 14px;
+        border-radius: 8px;
+        padding: 14px;
+        background: var(--panel-soft);
+      }
+
+      .concept-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .eyebrow {
+        color: var(--teal-dark);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .concept-title {
+        margin: 3px 0 0;
+        font-size: 19px;
+        line-height: 1.25;
+      }
+
+      .concept-note {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        text-align: right;
+      }
+
+      .concept-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 10px;
+      }
+
+      .input-label {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .concept-hints {
+        display: grid;
+        gap: 7px;
+      }
+
+      .concept-hint {
+        border-left: 3px solid var(--teal);
+        padding: 7px 9px;
+        background: #fff;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.4;
+      }
+
       .composer-panel .recipe-title {
         font-size: 18px;
       }
@@ -771,8 +836,17 @@
         }
 
         .detail-grid,
-        .action-row {
+        .action-row,
+        .concept-grid {
           grid-template-columns: 1fr;
+        }
+
+        .concept-head {
+          display: grid;
+        }
+
+        .concept-note {
+          text-align: left;
         }
       }
     </style>
@@ -797,6 +871,26 @@
             <button id="clearSelectionButton" class="ghost" type="button">비우기</button>
           </div>
           <div class="composer-body">
+            <div class="concept-lab">
+              <div class="concept-head">
+                <div>
+                  <div class="eyebrow">1. 컨셉 먼저</div>
+                  <h3 class="concept-title">내 나이, 성정, 지금 하고 싶은 말을 먼저 잡습니다.</h3>
+                </div>
+                <div class="concept-note">최신 차트 감각 + 성숙한 화자성 + 히트곡 데이터</div>
+              </div>
+              <div class="concept-grid">
+                <label class="input-label">
+                  나이대 / 성정
+                  <input id="creatorProfileInput" type="text" placeholder="예) 40대, 차분하지만 속은 뜨거움, 서정적이고 집요함" />
+                </label>
+                <label class="input-label">
+                  지금 하고 싶은 말
+                  <textarea id="conceptInput" placeholder="예) 늦게 깨달은 사랑, 지나간 사람에게 담담히 건네는 말, 다시 시작하고 싶은 마음"></textarea>
+                </label>
+              </div>
+              <div id="conceptHints" class="concept-hints"></div>
+            </div>
             <div id="selectedList" class="selected-list"></div>
             <div class="stack">
               <textarea id="ideaInput" placeholder="내 곡 키워드: 예) 밤 산책, 후회 없는 이별, 120 BPM 댄스팝"></textarea>
@@ -929,6 +1023,7 @@
         `https://cdn.jsdelivr.net/gh/${REPO}@main/cloud_ledger/song_library.json`;
       const MIN_LEDGER_TOTAL = 18144;
       const SELECTION_KEY = "hit-song-lab-selected-v2";
+      const CONCEPT_KEY = "hit-song-lab-concept-v1";
 
       const state = {
         ledger: null,
@@ -962,6 +1057,14 @@
         { id: "groove", label: "그루브 후크" },
         { id: "90-110", label: "90-110 BPM" },
         { id: "125-140", label: "125-140 BPM" },
+      ];
+
+      const trendHints = [
+        "최신 차트 감각: 제목 큐는 짧게, 첫 45초 안에 코러스나 포스트훅의 기억 지점을 보여줍니다.",
+        "글로벌 경향: K-pop/global pop, country-pop, Latin/R&B, 어쿠스틱 발라드가 따로가 아니라 섞여 움직입니다.",
+        "성숙한 화자에게 유리한 방향: 과장된 청춘감보다 '겪어본 사람만 말할 수 있는 한 문장'이 컨셉의 힘이 됩니다.",
+        "숏폼 경향: 춤보다 장면이 강한 곡도 됩니다. 한 줄 가사, 손동작, 표정, 정지 화면으로 남을 순간을 먼저 잡습니다.",
+        "서정곡 경향: 슬픔을 설명하기보다 구체적 사물 하나, 시간 하나, 장소 하나로 감정을 대신 말합니다.",
       ];
 
       const $ = (id) => document.getElementById(id);
@@ -1283,6 +1386,7 @@
           saveSelection();
           renderSelection();
           renderSongs();
+          buildRecipe();
         }
       }
 
@@ -1291,6 +1395,7 @@
         saveSelection();
         renderSelection();
         renderSongs();
+        buildRecipe();
       }
 
       function saveSelection() {
@@ -1480,6 +1585,107 @@
         return Math.round(bpms.reduce((sum, bpm) => sum + bpm, 0) / bpms.length);
       }
 
+      function conceptState() {
+        return {
+          profile: $("creatorProfileInput").value.trim(),
+          concept: $("conceptInput").value.trim(),
+          idea: $("ideaInput").value.trim(),
+        };
+      }
+
+      function saveConceptState() {
+        localStorage.setItem(CONCEPT_KEY, JSON.stringify(conceptState()));
+      }
+
+      function restoreConceptState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(CONCEPT_KEY) || "{}");
+          $("creatorProfileInput").value = saved.profile || "";
+          $("conceptInput").value = saved.concept || "";
+          $("ideaInput").value = saved.idea || "";
+        } catch {
+          localStorage.removeItem(CONCEPT_KEY);
+        }
+      }
+
+      function conceptDirection(songs) {
+        const genre = normalize(commonValue(songs, (song) => song.genre));
+        const avg = averageBpmNumber(songs);
+        if (genre.includes("ballad") || genre.includes("soft") || genre.includes("ost") || (avg && avg < 95)) {
+          return {
+            lane: "서정 발라드/팝",
+            promise: "설명하지 말고 장면 하나로 감정을 보이기",
+            titleShape: "2-5음절 한국어 제목 또는 짧은 문장형 제목",
+            hookRule: "코러스 첫 줄에 결론을 두고, 마지막 단어를 길게 남깁니다.",
+          };
+        }
+        if (genre.includes("dance") || (avg && avg >= 118)) {
+          return {
+            lane: "글로벌 팝/댄스",
+            promise: "몸이 먼저 반응하는 짧은 제목 큐 만들기",
+            titleShape: "한 단어 또는 두 단어의 구호형 제목",
+            hookRule: "프리코러스에서 기대를 쌓고 포스트훅에서 제목을 반복합니다.",
+          };
+        }
+        if (genre.includes("hip") || genre.includes("rap") || genre.includes("trap")) {
+          return {
+            lane: "랩/리듬 팝",
+            promise: "말맛과 태도를 컨셉의 전면에 세우기",
+            titleShape: "입에 붙는 짧은 명사구 또는 반어적 제목",
+            hookRule: "박자 안쪽에 제목을 걸고, 빈 공간을 훅의 일부로 씁니다.",
+          };
+        }
+        return {
+          lane: "서정 팝",
+          promise: "개인적이지만 누구나 자기 이야기로 들을 수 있는 한 줄 찾기",
+          titleShape: "짧은 제목 + 보편적 감정",
+          hookRule: "첫 코러스에서 제목의 의미를 바로 알게 하고 마지막 코러스에서 한 번 비틉니다.",
+        };
+      }
+
+      function conceptHintsFor(songs) {
+        const { profile, concept, idea } = conceptState();
+        const direction = conceptDirection(songs);
+        const references = songs.slice(0, 3).map((song) => `${song.title} - ${song.artist}`).join(" / ");
+        return [
+          `컨셉 질문: 이 곡의 주인공은 어떤 나이와 결을 가진 사람인가? ${profile ? `현재 입력: ${profile}` : "나이대와 성정을 먼저 적어 보세요."}`,
+          `한 줄 약속: ${concept || idea || "지금 꼭 하고 싶은 말을 한 문장으로 적어 보세요."}`,
+          `추천 방향: ${direction.lane}. ${direction.promise}`,
+          `제목 감각: ${direction.titleShape}. 제목은 멋보다 기억을 우선합니다.`,
+          `최신 경향: ${trendHints[0]} ${trendHints[3]}`,
+          `선택곡 힌트: ${references || "히트곡을 2-3곡 담으면 컨셉 비교가 더 선명해집니다."}`,
+        ];
+      }
+
+      function renderConceptHints() {
+        const songs = state.selected.length ? state.selected : state.filtered.slice(0, 3);
+        $("conceptHints").innerHTML = conceptHintsFor(songs)
+          .map((hint) => `<div class="concept-hint">${escapeHtml(hint)}</div>`)
+          .join("");
+      }
+
+      function conceptBrief(songs) {
+        const { profile, concept, idea } = conceptState();
+        const direction = conceptDirection(songs);
+        const trendLine = trendHints.slice(0, 3).join(" ");
+        const seed = concept || idea || "직접 입력 전";
+        return [
+          "[컨셉 먼저]",
+          `- 한 줄 컨셉: ${seed}`,
+          `- 화자 나이/성정: ${profile || "직접 입력 전. 숫자보다 말투, 체온, 겪어본 감각을 먼저 정하세요."}`,
+          `- 추천 컨셉 레인: ${direction.lane}`,
+          `- 곡의 약속: ${direction.promise}`,
+          `- 제목 방향: ${direction.titleShape}`,
+          `- 훅 규칙: ${direction.hookRule}`,
+          `- 최신 경향 반영: ${trendLine}`,
+          "- 컨셉 체크 질문:",
+          "  1. 이 노래의 주인공은 왜 지금 이 말을 해야 하나?",
+          "  2. 내 나이와 성정이 아니면 못 나오는 표현은 무엇인가?",
+          "  3. 듣는 사람이 10초 안에 기억할 제목/장면/동작은 무엇인가?",
+          "  4. 너무 젊게 꾸민 표현이나 너무 설명적인 문장을 지웠는가?",
+        ].join("\n");
+      }
+
       function chordSourceSummary(songs) {
         const chords = songs
           .map((song) => song.chord_progression)
@@ -1572,11 +1778,16 @@
       function buildRecipe() {
         const songs = state.selected;
         if (songs.length < 2) {
-          $("recipeBody").textContent = "참고곡을 2곡 이상 담으면 조합 브리프를 만들 수 있습니다.";
+          $("recipeBody").textContent = [
+            conceptBrief(songs),
+            "",
+            "참고곡을 2곡 이상 담으면 컨셉을 코드/구조/후크 설계로 확장할 수 있습니다.",
+          ].join("\n");
+          renderConceptHints();
           return;
         }
 
-        const idea = $("ideaInput").value.trim();
+        const { idea } = conceptState();
         const avgBpm = summarizeBpm(songs);
         const genres = shortList(songs.map((song) => song.genre));
         const hooks = shortList(songs.map((song) => song.hook_type));
@@ -1593,6 +1804,8 @@
 
         const references = songs.map((song) => `${song.title} - ${song.artist}`).join(" + ");
         const brief = [
+          conceptBrief(songs),
+          "",
           `참고 조합: ${references}`,
           idea ? `내 곡 키워드: ${idea}` : "내 곡 키워드: 직접 입력 전",
           "",
@@ -1638,6 +1851,7 @@
         ].join("\n");
 
         $("recipeBody").textContent = brief;
+        renderConceptHints();
       }
 
       async function copyRecipe() {
@@ -1704,6 +1918,13 @@
         $("randomButton").addEventListener("click", chooseRandom);
         $("recipeButton").addEventListener("click", buildRecipe);
         $("copyRecipeButton").addEventListener("click", copyRecipe);
+        ["creatorProfileInput", "conceptInput", "ideaInput"].forEach((id) => {
+          $(id).addEventListener("input", () => {
+            saveConceptState();
+            renderConceptHints();
+            buildRecipe();
+          });
+        });
         $("loadMoreButton").addEventListener("click", () => {
           state.renderLimit += 80;
           renderSongs();
@@ -1719,11 +1940,13 @@
           fillSelect("genreFilter", uniqueOptions(state.songs, "genre"), "전체 장르");
           fillSelect("hookFilter", uniqueOptions(state.songs, "hook_type"), "전체 후크");
           fillSelect("confidenceFilter", uniqueOptions(state.songs, "data_confidence"), "전체 신뢰도");
+          restoreConceptState();
           restoreSelection();
           renderMetrics(ledger);
           renderChips();
           renderSongs();
           renderSelection();
+          renderConceptHints();
           buildRecipe();
           setStatus(`정상 동기화 ${compactDate(ledger.updated_at)}`);
         } catch (error) {
