@@ -928,6 +928,110 @@
         margin-top: 9px;
       }
 
+      .analysis-strip {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fbfdff;
+      }
+
+      .analysis-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        border-radius: 999px;
+        padding: 0 8px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .status-pill.need {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+
+      .status-pill.good {
+        background: var(--green-soft);
+        color: var(--teal-dark);
+      }
+
+      .analysis-core {
+        display: grid;
+        gap: 4px;
+      }
+
+      .analysis-core-title {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .analysis-core-value {
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.42;
+      }
+
+      .analysis-core-value.missing {
+        color: var(--amber);
+        font-weight: 900;
+      }
+
+      .analysis-note {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.4;
+      }
+
+      .analysis-edit-form {
+        display: grid;
+        gap: 10px;
+        margin-top: 10px;
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+      }
+
+      .analysis-edit-section {
+        display: grid;
+        gap: 8px;
+      }
+
+      .analysis-edit-title {
+        color: var(--teal-dark);
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .analysis-edit-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .analysis-edit-form label {
+        display: grid;
+        gap: 4px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .analysis-edit-form textarea {
+        min-height: 64px;
+      }
+
       .empty {
         min-height: 230px;
         display: grid;
@@ -1152,6 +1256,7 @@
         }
 
         .detail-grid,
+        .analysis-edit-grid,
         .action-row,
         .concept-grid,
         .persona-grid {
@@ -1347,6 +1452,7 @@
       const MIN_LEDGER_TOTAL = 38204;
       const SELECTION_KEY = "hit-song-lab-selected-v2";
       const CONCEPT_KEY = "hit-song-lab-concept-v1";
+      const ANALYSIS_EDIT_KEY = "hit-song-lab-analysis-edits-v1";
 
       const state = {
         ledger: null,
@@ -1355,9 +1461,46 @@
         selected: [],
         conceptSelections: {},
         axisOverrides: {},
+        analysisEdits: {},
         activePreset: "hit",
         renderLimit: 80,
       };
+
+      const editableAnalysisFields = [
+        "chorus_excerpt",
+        "hook_lyric_excerpt",
+        "chorus_excerpt_source",
+        "chorus_excerpt_input_method",
+        "chorus_excerpt_permission_status",
+        "chorus_excerpt_visibility",
+        "hook_lyric_confidence",
+        "lyric_structure_summary",
+        "repeated_phrase_summary",
+        "title_placement",
+        "chorus_role_summary",
+        "key",
+        "bpm",
+        "mode",
+        "verse_chords",
+        "pre_chorus_chords",
+        "chorus_chords",
+        "bridge_chords",
+        "harmonic_loop",
+        "roman_numeral_progression",
+        "harmonic_features",
+        "bass_motion_summary",
+        "tension_resolution_summary",
+        "chord_emotional_effect",
+        "chord_creative_principles",
+        "chord_source",
+        "chord_confidence",
+        "chord_memo",
+        "hook_melodic_contour",
+        "melody_interval_summary",
+        "melody_rhythm_summary",
+        "hook_melody_confidence",
+        "hook_melody_source",
+      ];
 
       const bpmBuckets = [
         ["", "전체 BPM"],
@@ -1956,6 +2099,83 @@
           .replace(/'/g, "&#39;");
       }
 
+      function firstPresent(...values) {
+        return values.find((value) => value !== undefined && value !== null && String(value).trim()) || "";
+      }
+
+      function loadAnalysisEdits() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(ANALYSIS_EDIT_KEY) || "{}");
+          state.analysisEdits = saved && typeof saved === "object" ? saved : {};
+        } catch {
+          state.analysisEdits = {};
+          localStorage.removeItem(ANALYSIS_EDIT_KEY);
+        }
+      }
+
+      function saveAnalysisEdits() {
+        localStorage.setItem(ANALYSIS_EDIT_KEY, JSON.stringify(state.analysisEdits));
+      }
+
+      function applyAnalysisEdit(song) {
+        const edit = state.analysisEdits[identity(song)];
+        return edit ? { ...song, ...edit } : song;
+      }
+
+      function applyAnalysisEdits(songs) {
+        return songs.map(applyAnalysisEdit);
+      }
+
+      function cleanAnalysisValues(values) {
+        return editableAnalysisFields.reduce((clean, field) => {
+          const value = values[field];
+          if (value !== undefined && value !== null && String(value).trim()) {
+            clean[field] = String(value).trim();
+          }
+          return clean;
+        }, {});
+      }
+
+      function updateSongEverywhere(key, edit) {
+        const applyOne = (song) => (identity(song) === key ? { ...song, ...edit } : song);
+        state.songs = state.songs.map(applyOne);
+        state.filtered = state.filtered.map(applyOne);
+        state.selected = state.selected.map(applyOne);
+      }
+
+      function saveSongAnalysis(form) {
+        const key = form.dataset.analysisForm;
+        if (!key) return;
+        const values = Object.fromEntries(new FormData(form).entries());
+        const clean = cleanAnalysisValues(values);
+        if (Object.keys(clean).length) {
+          state.analysisEdits[key] = clean;
+          updateSongEverywhere(key, clean);
+        } else {
+          delete state.analysisEdits[key];
+        }
+        saveAnalysisEdits();
+        renderSongs();
+        renderSelection();
+        renderConceptHints();
+        buildRecipe();
+        setStatus("곡별 후렴/코드/멜로디 분석 저장됨");
+      }
+
+      function clearSongAnalysis(key) {
+        if (!key) return;
+        delete state.analysisEdits[key];
+        saveAnalysisEdits();
+        const selectedKeys = new Set(state.selected.map(identity));
+        state.songs = sortSongs(applyAnalysisEdits(state.ledger?.songs || state.songs));
+        state.selected = state.songs.filter((song) => selectedKeys.has(identity(song)));
+        renderSongs();
+        renderSelection();
+        renderConceptHints();
+        buildRecipe();
+        setStatus("로컬 분석 입력값 삭제됨");
+      }
+
       function compactDate(value) {
         if (!value) return "-";
         const text = String(value);
@@ -2084,6 +2304,26 @@
           song.hook_type,
           song.hook_location,
           song.hook_cue,
+          song.chorus_excerpt,
+          song.hook_lyric_excerpt,
+          song.chorus_excerpt_input_method,
+          song.lyric_structure_summary,
+          song.repeated_phrase_summary,
+          song.title_placement,
+          song.chorus_role_summary,
+          song.mode,
+          song.verse_chords,
+          song.pre_chorus_chords,
+          song.chorus_chords,
+          song.bridge_chords,
+          song.harmonic_loop,
+          song.roman_numeral_progression,
+          song.harmonic_features,
+          song.chord_emotional_effect,
+          song.chord_creative_principles,
+          song.hook_melodic_contour,
+          song.melody_interval_summary,
+          song.melody_rhythm_summary,
           song.lyric_theme,
           song.speaker_situation,
           song.story_flow,
@@ -2357,6 +2597,8 @@
             const hook = [song.hook_cue, song.hook_type, song.hook_location].filter(Boolean).join(" / ");
             const youtube = youtubeUrl(song);
             const evidence = hitEvidence(song);
+            const analysisBlock = renderAnalysisStrip(song);
+            const chordAnalysis = songChordAnalysis(song);
 
             return `
               <article class="song-card">
@@ -2376,6 +2618,7 @@
                   <div class="field-label">Hook</div>
                   <div class="field-value">${escapeHtml(hook || "-")}</div>
                 </div>
+                ${analysisBlock}
                 <div class="field">
                   <div class="field-label">Why It Works</div>
                   <div class="field-value">${escapeHtml(song.why_hook_works || song.hit_factor || "-")}</div>
@@ -2390,11 +2633,18 @@
                     ${detailCell("테마", song.lyric_theme)}
                     ${detailCell("상황", song.speaker_situation)}
                     ${detailCell("구조", song.story_flow)}
-                    ${detailCell("코드", song.chord_progression)}
+                    ${detailCell("Verse 코드", chordAnalysis.verse)}
+                    ${detailCell("Pre-Chorus 코드", chordAnalysis.pre)}
+                    ${detailCell("Chorus 코드", chordAnalysis.chorus || chordAnalysis.loop)}
+                    ${detailCell("Bridge 코드", chordAnalysis.bridge)}
+                    ${detailCell("Roman numeral", chordAnalysis.roman.loop)}
                     ${detailCell("코드 분석", songChordAnalysisSummary(song))}
+                    ${detailCell("후렴 반복/제목", `${hookLyricInfo(song).repeatedPhrase} / ${hookLyricInfo(song).titlePlacement}`)}
+                    ${detailCell("후크 멜로디", `${hookMelodyInfo(song).contour || "후크 멜로디 분석 필요"} / ${hookMelodyInfo(song).rhythm}`)}
                     ${detailCell("편곡", song.arrangement)}
                     ${detailCell("보컬/믹스", [song.vocal, song.mixing].filter(Boolean).join(" / "))}
                   </div>
+                  ${analysisEditForm(song, key)}
                 </details>
                 <div class="song-actions">
                   <button type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "담김" : "참고 추가"}</button>
@@ -2412,6 +2662,166 @@
             <div class="field-label">${escapeHtml(label)}</div>
             <div class="field-value">${escapeHtml(value || "-")}</div>
           </div>
+        `;
+      }
+
+      function selectOptions(current, options) {
+        return options
+          .map((option) => {
+            const selected = String(current || "") === option ? " selected" : "";
+            return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(option)}</option>`;
+          })
+          .join("");
+      }
+
+      function inputField(name, label, value, placeholder = "") {
+        return `<label>${escapeHtml(label)}<input name="${escapeHtml(name)}" value="${escapeHtml(value || "")}" placeholder="${escapeHtml(placeholder)}" /></label>`;
+      }
+
+      function textField(name, label, value, placeholder = "") {
+        return `<label>${escapeHtml(label)}<textarea name="${escapeHtml(name)}" placeholder="${escapeHtml(placeholder)}">${escapeHtml(value || "")}</textarea></label>`;
+      }
+
+      function selectField(name, label, value, options) {
+        return `<label>${escapeHtml(label)}<select name="${escapeHtml(name)}">${selectOptions(value, options)}</select></label>`;
+      }
+
+      function hookLyricInfo(song) {
+        const excerpt = firstPresent(song.hook_lyric_excerpt, song.chorus_excerpt);
+        const structureSummary = firstPresent(
+          song.lyric_structure_summary,
+          song.lyric_theme,
+          song.story_flow,
+          "후렴 구조 요약 미입력"
+        );
+        return {
+          excerpt,
+          hasExcerpt: Boolean(excerpt),
+          source: firstPresent(song.chorus_excerpt_source, excerpt ? "사용자 입력 또는 수동 확인" : "후렴구 원문 입력 필요"),
+          inputMethod: firstPresent(song.chorus_excerpt_input_method, excerpt ? "manual-input" : "needs-review"),
+          permission: firstPresent(song.chorus_excerpt_permission_status, excerpt ? "needs-review" : "unavailable"),
+          visibility: firstPresent(song.chorus_excerpt_visibility, excerpt ? "analysis-only" : "hidden"),
+          confidence: firstPresent(song.hook_lyric_confidence, song.data_confidence, excerpt ? "Medium" : "Low"),
+          structureSummary,
+          repeatedPhrase: firstPresent(song.repeated_phrase_summary, "반복 문장/단어 분석 필요"),
+          titlePlacement: firstPresent(song.title_placement, "제목 배치 분석 필요"),
+          chorusRole: firstPresent(song.chorus_role_summary, "후렴 역할 분석 필요"),
+        };
+      }
+
+      function hookMelodyInfo(song) {
+        const contour = firstPresent(song.hook_melodic_contour, song.melody_contour, song.melody_interval_summary);
+        return {
+          contour,
+          hasMelody: Boolean(contour),
+          interval: firstPresent(song.melody_interval_summary, contour ? "음정 요약 미입력" : "후크 멜로디 분석 필요"),
+          rhythm: firstPresent(song.melody_rhythm_summary, "리듬 요약 분석 필요"),
+          source: firstPresent(song.hook_melody_source, contour ? "사용자 입력/수동 큐레이션" : "후크 멜로디 분석 필요"),
+          confidence: firstPresent(song.hook_melody_confidence, song.data_confidence, contour ? "Medium" : "Low"),
+        };
+      }
+
+      function analysisStatus(song) {
+        const lyric = hookLyricInfo(song);
+        const chord = songChordAnalysis(song);
+        const melody = hookMelodyInfo(song);
+        const missing = [
+          lyric.hasExcerpt ? "" : "가사 후크 입력 필요",
+          chord.hasRaw ? "" : "코드진행 분석 필요",
+          melody.hasMelody ? "" : "후크 멜로디 분석 필요",
+        ].filter(Boolean);
+        return { lyric, chord, melody, complete: !missing.length, missing };
+      }
+
+      function renderAnalysisStrip(song) {
+        const status = analysisStatus(song);
+        const { lyric, chord, melody } = status;
+        const pills = status.complete
+          ? `<span class="status-pill good">분석 완료</span>`
+          : status.missing.map((item) => `<span class="status-pill need">${escapeHtml(item)}</span>`).join("");
+        const lyricClass = lyric.hasExcerpt ? "" : " missing";
+        const chordClass = chord.hasRaw ? "" : " missing";
+        const melodyClass = melody.hasMelody ? "" : " missing";
+        return `
+          <div class="analysis-strip">
+            <div class="analysis-status">${pills}</div>
+            <div class="analysis-core">
+              <div class="analysis-core-title">후렴구/후크 가사</div>
+              <div class="analysis-core-value${lyricClass}">${escapeHtml(lyric.excerpt || "후렴구 입력 필요")}</div>
+              <div class="analysis-note">출처 ${escapeHtml(lyric.source)} · 입력 ${escapeHtml(lyric.inputMethod)} · 권한 ${escapeHtml(lyric.permission)} · 표시 ${escapeHtml(lyric.visibility)} · 신뢰도 ${escapeHtml(lyric.confidence)}</div>
+              <div class="analysis-note">${escapeHtml(lyric.structureSummary)} / ${escapeHtml(lyric.titlePlacement)}</div>
+            </div>
+            <div class="analysis-core">
+              <div class="analysis-core-title">코드진행 분석</div>
+              <div class="analysis-core-value${chordClass}">Key ${escapeHtml(chord.key)} · ${escapeHtml(chord.bpm ? `${chord.bpm} BPM` : "BPM 미입력")} · Mode ${escapeHtml(chord.mode)}<br />Chorus/Loop: ${escapeHtml(chord.chorus || chord.loop || "코드진행 분석 필요")}<br />Roman: ${escapeHtml(chord.roman.chorus || chord.roman.loop || "코드 입력 후 자동 변환")}</div>
+              <div class="analysis-note">${escapeHtml(chord.emotionalEffect)} · 신뢰도 ${escapeHtml(chord.confidence)}</div>
+            </div>
+            <div class="analysis-core">
+              <div class="analysis-core-title">후크 멜로디 분석</div>
+              <div class="analysis-core-value${melodyClass}">${escapeHtml(melody.contour || "후크 멜로디 분석 필요")}</div>
+              <div class="analysis-note">음정 ${escapeHtml(melody.interval)} · 리듬 ${escapeHtml(melody.rhythm)} · 신뢰도 ${escapeHtml(melody.confidence)}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      function analysisEditForm(song, key) {
+        const permissionOptions = ["needs-review", "user-provided", "user-owned", "licensed", "short-quote", "structure-only", "unavailable"];
+        const inputMethodOptions = ["manual-input", "user-owned", "licensed-metadata", "short-quote", "structure-summary", "needs-review"];
+        const visibilityOptions = ["analysis-only", "private", "public", "hidden"];
+        const confidenceOptions = ["Low", "Medium", "High", "user-verified", "metadata-supported", "heuristic"];
+        const modeOptions = ["major", "minor", "modal", "mixed", "unknown"];
+        return `
+          <form class="analysis-edit-form" data-analysis-form="${escapeHtml(key)}">
+            <div class="analysis-note">전체 가사 저장 기능이 아닙니다. 후렴/후크의 짧은 발췌 또는 구조 요약만 입력하세요.</div>
+            <div class="analysis-edit-section">
+              <div class="analysis-edit-title">후렴구/후크 가사 분석</div>
+              <div class="analysis-edit-grid">
+                ${textField("hook_lyric_excerpt", "후렴구/후크 가사 짧은 발췌", firstPresent(song.hook_lyric_excerpt, song.chorus_excerpt), "권리 확인된 짧은 문장 또는 직접 입력")}
+                ${textField("lyric_structure_summary", "후렴 구조 요약", song.lyric_structure_summary, "첫 줄 선언, 마지막 줄 결론 등")}
+                ${inputField("chorus_excerpt_source", "후렴구 출처", song.chorus_excerpt_source, "사용자 입력 / 짧은 발췌 / 구조만")}
+                ${selectField("chorus_excerpt_input_method", "입력 방식", song.chorus_excerpt_input_method, inputMethodOptions)}
+                ${selectField("chorus_excerpt_permission_status", "권한 상태", song.chorus_excerpt_permission_status, permissionOptions)}
+                ${selectField("chorus_excerpt_visibility", "표시 범위", song.chorus_excerpt_visibility, visibilityOptions)}
+                ${selectField("hook_lyric_confidence", "가사 후크 신뢰도", song.hook_lyric_confidence, confidenceOptions)}
+                ${inputField("repeated_phrase_summary", "반복구 요약", song.repeated_phrase_summary, "짧은 선언형 문장 반복")}
+                ${inputField("title_placement", "제목 배치", song.title_placement, "후렴 첫 줄/마지막 줄/태그")}
+                ${textField("chorus_role_summary", "후렴 역할", song.chorus_role_summary, "감정 선언, 결론, 해소 등")}
+              </div>
+            </div>
+            <div class="analysis-edit-section">
+              <div class="analysis-edit-title">코드진행 추출/분석</div>
+              <div class="analysis-edit-grid">
+                ${inputField("key", "Key", song.key, "E major")}
+                ${inputField("bpm", "BPM", song.bpm, "72")}
+                ${selectField("mode", "Mode", song.mode, modeOptions)}
+                ${textField("verse_chords", "Verse chords", song.verse_chords, "E - B/D# - C#m7 - Aadd9")}
+                ${textField("pre_chorus_chords", "Pre-Chorus chords", song.pre_chorus_chords, "F#m7 - Bsus4 - B")}
+                ${textField("chorus_chords", "Chorus chords", song.chorus_chords, "E - B - C#m7 - A")}
+                ${textField("bridge_chords", "Bridge chords", song.bridge_chords, "C#m7 - Amaj7 - E/B - B7")}
+                ${textField("harmonic_loop", "대표 harmonic loop", firstPresent(song.harmonic_loop, song.chord_progression), "E - B - C#m7 - A")}
+                ${inputField("chord_source", "코드 출처", song.chord_source, "user-provided / curated / licensed metadata")}
+                ${selectField("chord_confidence", "코드 신뢰도", song.chord_confidence, confidenceOptions)}
+                ${textField("harmonic_features", "코드 기능 분석", song.harmonic_features, "하행 베이스, secondary dominant, sus 해상")}
+                ${textField("chord_emotional_effect", "감정적 효과", song.chord_emotional_effect, "회상감, 안정감, 아련한 여운")}
+                ${textField("chord_creative_principles", "창작 적용 원리", song.chord_creative_principles, "진행 복제 금지, 기능과 움직임만 일반화")}
+              </div>
+            </div>
+            <div class="analysis-edit-section">
+              <div class="analysis-edit-title">후크 멜로디 분석</div>
+              <div class="analysis-edit-grid">
+                ${textField("hook_melodic_contour", "후크 멜로디 윤곽", song.hook_melodic_contour, "3도 시작, 5도 도약 후 순차 하행")}
+                ${inputField("melody_interval_summary", "음정 요약", song.melody_interval_summary, "3도/5도 중심, 9도 착지")}
+                ${inputField("melody_rhythm_summary", "리듬 요약", song.melody_rhythm_summary, "짧은 앞박 + 긴 마지막 음")}
+                ${inputField("hook_melody_source", "멜로디 분석 출처", song.hook_melody_source, "사용자 입력 / 악보 / 수동 큐레이션")}
+                ${selectField("hook_melody_confidence", "멜로디 신뢰도", song.hook_melody_confidence, confidenceOptions)}
+              </div>
+            </div>
+            <div class="song-actions">
+              <button type="submit">분석 저장</button>
+              <button class="secondary" type="button" data-clear-analysis="${escapeHtml(key)}">로컬 분석 삭제</button>
+            </div>
+          </form>
         `;
       }
 
@@ -2725,7 +3135,10 @@
         const bpms = songs.map(getBpm).filter(Boolean);
         const avg = bpms.length ? Math.round(bpms.reduce((sum, bpm) => sum + bpm, 0) / bpms.length) : null;
         const range = bpms.length ? `${Math.min(...bpms)}-${Math.max(...bpms)}` : "미확정";
-        const chordCount = songs.filter((song) => song.chord_progression && String(song.chord_progression).trim()).length;
+        const chordCount = songs.filter((song) => songChordAnalysis(song).hasRaw).length;
+        const lyricHookCount = songs.filter((song) => hookLyricInfo(song).hasExcerpt).length;
+        const melodyHookCount = songs.filter((song) => hookMelodyInfo(song).hasMelody).length;
+        const completeAnalysisCount = songs.filter((song) => analysisStatus(song).complete).length;
         const detailedCount = songs.filter((song) => song.lyric_theme && song.hook_type && song.producer_takeaway).length;
         const lowCount = songs.filter((song) => normalize(song.data_confidence) === "low").length;
         return {
@@ -2737,6 +3150,9 @@
           topSources: topCounts(songs, (song) => song.chart_source || song.source_type, 4),
           topThemes: topCounts(songs, (song) => song.lyric_theme, 4),
           chordCount,
+          lyricHookCount,
+          melodyHookCount,
+          completeAnalysisCount,
           detailedCount,
           lowCount,
         };
@@ -2845,7 +3261,7 @@
             const genre = song.genre || "genre";
             const hook = song.hook_type || "hook";
             const structure = song.structure || song.story_flow || "structure";
-            const chord = song.chord_progression ? "코드 밀도/해상 원리" : "차트 성과/제목 포지션";
+            const chord = songChordAnalysis(song).hasRaw ? "코드 밀도/해상 원리" : "차트 성과/제목 포지션";
             return `  ${index + 1}. ${song.title} - ${song.artist}: 가져올 것=${genre}의 ${hook}, ${chord}; 피할 것=원곡 멜로디·가사·리프; 새 적용=${structure}`;
           })
           .join("\n");
@@ -2857,6 +3273,132 @@
           .split(/\s+|-/)
           .map((token) => token.trim())
           .filter(Boolean);
+      }
+
+      const notePitchClass = {
+        c: 0,
+        "c#": 1,
+        db: 1,
+        d: 2,
+        "d#": 3,
+        eb: 3,
+        e: 4,
+        f: 5,
+        "f#": 6,
+        gb: 6,
+        g: 7,
+        "g#": 8,
+        ab: 8,
+        a: 9,
+        "a#": 10,
+        bb: 10,
+        b: 11,
+      };
+
+      const majorDegreeMap = {
+        0: "I",
+        1: "bII",
+        2: "ii",
+        3: "bIII",
+        4: "iii",
+        5: "IV",
+        6: "#IV",
+        7: "V",
+        8: "bVI",
+        9: "vi",
+        10: "bVII",
+        11: "vii°",
+      };
+
+      const minorDegreeMap = {
+        0: "i",
+        1: "bII",
+        2: "ii°",
+        3: "III",
+        4: "iii",
+        5: "iv",
+        6: "#iv°",
+        7: "v",
+        8: "VI",
+        9: "bVII",
+        10: "VII",
+        11: "vii°",
+      };
+
+      function parseChordSymbol(symbol) {
+        const clean = String(symbol || "")
+          .replace(/[|,]/g, "")
+          .trim();
+        const match = clean.match(/^([A-G](?:#|b)?)([^/]*)(?:\/([A-G](?:#|b)?))?/i);
+        if (!match) return null;
+        return {
+          root: match[1],
+          suffix: match[2] || "",
+          bass: match[3] || "",
+          original: clean,
+        };
+      }
+
+      function pitchClass(note) {
+        return notePitchClass[String(note || "").toLowerCase()];
+      }
+
+      function keyInfo(songOrKey) {
+        const raw = typeof songOrKey === "object" ? firstPresent(songOrKey.key, songOrKey.mode) : songOrKey;
+        const text = String(raw || "").trim();
+        const match = text.match(/([A-G](?:#|b)?)/i);
+        const root = match ? match[1] : "C";
+        const modeText = normalize(typeof songOrKey === "object" ? firstPresent(songOrKey.mode, songOrKey.key) : text);
+        const mode = modeText.includes("minor") || modeText.includes("min") || modeText.includes("단조") ? "minor" : "major";
+        return { root, mode, text: text || `${root} ${mode}` };
+      }
+
+      function bassInversionSuffix(chord, info) {
+        if (!chord.bass) return "";
+        const rootPc = pitchClass(chord.root);
+        const bassPc = pitchClass(chord.bass);
+        if (rootPc === undefined || bassPc === undefined) return `/${chord.bass}`;
+        const interval = (bassPc - rootPc + 12) % 12;
+        if (interval === 3 || interval === 4) return "6";
+        if (interval === 7) return "64";
+        const keyRoot = pitchClass(info.root);
+        const bassDegree = keyRoot === undefined ? chord.bass : (info.mode === "minor" ? minorDegreeMap : majorDegreeMap)[(bassPc - keyRoot + 12) % 12];
+        return bassDegree ? `/${bassDegree}` : `/${chord.bass}`;
+      }
+
+      function romanQualitySuffix(suffix) {
+        const text = String(suffix || "");
+        const bits = [];
+        if (/maj7/i.test(text)) bits.push("maj7");
+        else if (/m7|min7/i.test(text)) bits.push("7");
+        else if (/(^|[^a-z])7/i.test(text)) bits.push("7");
+        if (/9/.test(text)) bits.push("9");
+        if (/13/.test(text)) bits.push("13");
+        if (/sus/i.test(text)) bits.push("sus");
+        if (/add9/i.test(text)) bits.push("add9");
+        if (/#11/i.test(text)) bits.push("#11");
+        if (/alt/i.test(text)) bits.push("alt");
+        return bits.length ? `(${bits.join(",")})` : "";
+      }
+
+      function romanForChord(symbol, songOrKey) {
+        const chord = parseChordSymbol(symbol);
+        if (!chord) return String(symbol || "").trim();
+        const info = keyInfo(songOrKey);
+        const keyPc = pitchClass(info.root);
+        const rootPc = pitchClass(chord.root);
+        if (keyPc === undefined || rootPc === undefined) return chord.original;
+        const degree = (rootPc - keyPc + 12) % 12;
+        let roman = (info.mode === "minor" ? minorDegreeMap : majorDegreeMap)[degree] || chord.root;
+        const suffix = chord.suffix || "";
+        if (/^m(?!aj)/i.test(suffix) && /^[IV]+$/.test(roman)) roman = roman.toLowerCase();
+        if (/maj|add|sus/i.test(suffix) && /^[iv]+$/.test(roman) && !/^m/i.test(suffix)) roman = roman.toUpperCase();
+        return `${roman}${bassInversionSuffix(chord, info)}${romanQualitySuffix(suffix)}`;
+      }
+
+      function toRomanProgression(progression, songOrKey) {
+        const tokens = chordTokens(progression).filter((token) => parseChordSymbol(token));
+        return tokens.length ? tokens.map((token) => romanForChord(token, songOrKey)).join(" - ") : "";
       }
 
       function chordPatternInfo(raw) {
@@ -2979,26 +3521,68 @@
       }
 
       function songChordAnalysis(song) {
-        const raw = String(song.chord_progression || "").trim();
-        const hasRaw = raw && raw.toLowerCase() !== "null";
-        const source = hasRaw ? "원곡/입력 코드 보유" : "원곡 코드 미확정";
-        const pattern = chordPatternInfo(raw);
+        const verse = firstPresent(song.verse_chords, song.verse_progression);
+        const pre = firstPresent(song.pre_chorus_chords, song.prechorus_chords, song.pre_chorus_progression);
+        const chorus = firstPresent(song.chorus_chords, song.chorus_progression);
+        const bridge = firstPresent(song.bridge_chords, song.bridge_progression);
+        const loop = firstPresent(song.harmonic_loop, song.chord_progression, chorus, verse, pre, bridge);
+        const hasRaw = Boolean(loop && String(loop).trim().toLowerCase() !== "null");
+        const pattern = chordPatternInfo(loop);
         const inferred = inferredChordPlanForSong(song);
-        const key = song.key || inferred.progression.match(/[A-G][b#]?\s*(major|minor)?/i)?.[0] || "보컬 레인지에 맞춰 조옮김";
-        const confidenceBase = normalize(song.data_confidence);
-        const confidence = hasRaw
-          ? confidenceBase === "low"
-            ? "Medium: 코드 표기는 있으나 출처 확인 필요"
-            : "High/Medium: 코드 표기 기반 분석"
-          : "Low: 공개 코드 미확정, 장르/BPM/후크 기반 추정";
+        const info = keyInfo(song);
+        const key = song.key || info.text || "보컬 레인지에 맞춰 조옮김";
+        const mode = firstPresent(song.mode, info.mode);
+        const bpm = getBpm(song);
+        const source = firstPresent(song.chord_source, hasRaw ? "사용자 입력/수동 큐레이션 코드" : "코드진행 분석 필요");
+        const confidenceBase = normalize(firstPresent(song.chord_confidence, song.data_confidence));
+        const confidence = firstPresent(
+          song.chord_confidence,
+          hasRaw
+            ? confidenceBase === "low"
+              ? "Medium: 코드 표기는 있으나 출처 확인 필요"
+              : "High/Medium: 입력 또는 큐레이션 코드 기반 분석"
+            : "Low: 코드진행 분석 필요"
+        );
+        const roman = {
+          loop: firstPresent(song.roman_numeral_progression, toRomanProgression(loop, song)),
+          verse: toRomanProgression(verse, song),
+          pre: toRomanProgression(pre, song),
+          chorus: toRomanProgression(chorus, song),
+          bridge: toRomanProgression(bridge, song),
+        };
+        const emotionalEffect = firstPresent(
+          song.chord_emotional_effect,
+          hasRaw
+            ? `${pattern.family}: ${pattern.functionText}`
+            : "실제 코드가 없어 감정 효과를 단정할 수 없습니다. 먼저 Verse/Chorus 또는 대표 loop를 입력하세요."
+        );
+        const creativePrinciples = firstPresent(
+          song.chord_creative_principles,
+          hasRaw
+            ? "원곡 진행을 그대로 복제하지 말고 기능만 일반화합니다. 베이스 움직임, 해상 위치, add9/sus/7th 색채만 새 진행에 옮기세요."
+            : inferred.reason
+        );
         return {
           source,
-          raw: hasRaw ? raw : "미확정",
+          raw: hasRaw ? loop : "코드진행 분석 필요",
+          hasRaw,
           key,
+          mode,
+          bpm,
+          verse,
+          pre,
+          chorus,
+          bridge,
+          loop: hasRaw ? loop : "",
+          roman,
           family: hasRaw ? pattern.family : inferred.label,
-          functionText: hasRaw ? pattern.functionText : inferred.reason,
+          functionText: firstPresent(song.harmonic_features, hasRaw ? pattern.functionText : inferred.reason),
+          bassMotion: firstPresent(song.bass_motion_summary, "베이스 움직임 미입력"),
+          tensionResolution: firstPresent(song.tension_resolution_summary, hasRaw ? "구간별 해상 위치를 Roman numeral과 함께 확인하세요." : "코드 입력 후 자동 요약 가능"),
+          emotionalEffect,
+          creativePrinciples,
           density: hasRaw ? pattern.density : "추정",
-          suggested: hasRaw ? transformChordForNewSong(raw, song) : inferred.progression,
+          suggested: hasRaw ? transformChordForNewSong(loop, song) : inferred.progression,
           confidence,
         };
       }
@@ -3015,7 +3599,26 @@
 
       function songChordAnalysisSummary(song) {
         const analysis = songChordAnalysis(song);
-        return `${analysis.source} · ${analysis.family} · ${analysis.functionText} · 새 곡 적용: ${analysis.suggested} · 신뢰도: ${analysis.confidence}`;
+        if (!analysis.hasRaw) return "코드진행 분석 필요 · Key/BPM/Verse/Chorus 또는 대표 harmonic loop를 입력하세요.";
+        const sections = [
+          analysis.verse ? `Verse ${analysis.verse}` : "",
+          analysis.pre ? `Pre ${analysis.pre}` : "",
+          analysis.chorus ? `Chorus ${analysis.chorus}` : "",
+          analysis.bridge ? `Bridge ${analysis.bridge}` : "",
+        ].filter(Boolean);
+        return [
+          `Key ${analysis.key}`,
+          analysis.bpm ? `${analysis.bpm} BPM` : "",
+          `Mode ${analysis.mode}`,
+          `Loop ${analysis.loop}`,
+          analysis.roman.loop ? `Roman ${analysis.roman.loop}` : "",
+          sections.join(" / "),
+          `해석 ${analysis.emotionalEffect}`,
+          `창작 원리 ${analysis.creativePrinciples}`,
+          `신뢰도 ${analysis.confidence}`,
+        ]
+          .filter(Boolean)
+          .join(" · ");
       }
 
       function perSongChordAnalysisRows(songs, limit = 20) {
@@ -3025,10 +3628,32 @@
             const analysis = songChordAnalysis(song);
             return [
               `  ${index + 1}. ${song.title} - ${song.artist}`,
-              `     - 원곡 코드: ${analysis.raw}`,
-              `     - 코드 출처/신뢰도: ${analysis.source} / ${analysis.confidence}`,
-              `     - 기능 분석: ${analysis.family}; ${analysis.functionText}`,
+              `     - Key/BPM/Mode: ${analysis.key} / ${analysis.bpm || "BPM 미입력"} / ${analysis.mode}`,
+              `     - 구간 코드: Verse ${analysis.verse || "분석 필요"} | Pre ${analysis.pre || "분석 필요"} | Chorus ${analysis.chorus || analysis.loop || "분석 필요"} | Bridge ${analysis.bridge || "분석 필요"}`,
+              `     - Roman numeral: ${analysis.roman.loop || "코드진행 입력 후 자동 변환"}`,
+              `     - 기능/감정: ${analysis.family}; ${analysis.emotionalEffect}`,
+              `     - 창작 원리: ${analysis.creativePrinciples}`,
+              `     - 출처/신뢰도: ${analysis.source} / ${analysis.confidence}`,
               `     - 새 곡 적용 진행: ${analysis.suggested}`,
+            ].join("\n");
+          })
+          .join("\n");
+      }
+
+      function perSongHookCoreRows(songs, limit = 20) {
+        return sortByHitPriority(songs)
+          .slice(0, limit)
+          .map((song, index) => {
+            const lyric = hookLyricInfo(song);
+            const melody = hookMelodyInfo(song);
+            const status = analysisStatus(song);
+            return [
+              `  ${index + 1}. ${song.title} - ${song.artist}`,
+              `     - 후렴/후크 가사: ${lyric.excerpt || "후렴구 입력 필요"}`,
+              `     - 출처/입력/권한/표시: ${lyric.source} / ${lyric.inputMethod} / ${lyric.permission} / ${lyric.visibility}`,
+              `     - 가사 구조: ${lyric.structureSummary}; 반복 ${lyric.repeatedPhrase}; 제목 ${lyric.titlePlacement}; 역할 ${lyric.chorusRole}`,
+              `     - 후크 멜로디: ${melody.contour || "후크 멜로디 분석 필요"}; 음정 ${melody.interval}; 리듬 ${melody.rhythm}`,
+              `     - 분석 상태: ${status.complete ? "완료" : status.missing.join(" / ")}`,
             ].join("\n");
           })
           .join("\n");
@@ -3037,10 +3662,15 @@
       function adaptiveHookPlan(songs) {
         const profile = dominantReferenceProfile(songs);
         const stats = referenceStats(songs);
+        const lyricReady = `${stats.lyricHookCount}/${songs.length}`;
+        const melodyReady = `${stats.melodyHookCount}/${songs.length}`;
         return [
           `- 추천곡 기준 후크 방향: ${profile.hook}`,
           `- 가장 강한 후크 계열: ${formatCounts(stats.topHooks.slice(0, 3))}`,
+          `- 후렴/가사 후크 분석 보유: ${lyricReady}, 후크 멜로디 분석 보유: ${melodyReady}`,
           "- 새 곡 적용: 제목 훅 1개, 리듬 훅 1개, 코드 해상 훅 1개를 따로 만든 뒤 코러스에서 하나로 합칩니다.",
+          "- 참고곡의 후렴 발췌가 있으면 문장 길이, 제목 위치, 반복 방식만 일반화하고 원문 표현은 복제하지 않습니다.",
+          "- 후크 멜로디 분석이 있으면 시작 음도, 도약 폭, 마지막 지속음, 리듬 포켓을 새 멜로디 원리로 바꿉니다.",
           "- 검산: 상위 참고곡의 제목/멜로디/리프를 닮으면 폐기하고, 기능만 남깁니다.",
         ].join("\n");
       }
@@ -3433,6 +4063,9 @@
           "[유형 맞춤 히트곡 20]",
           referenceList || "  - 데이터 로딩 후 자동 추천됩니다.",
           "",
+          "[추천곡별 후렴/후크 가사 + 멜로디 분석]",
+          perSongHookCoreRows(songs, 20) || "  - 추천곡이 로딩되면 후렴 발췌, 구조 요약, 후크 멜로디 분석 상태를 표시합니다.",
+          "",
           "[추천곡별 코드진행 분석]",
           perSongChordAnalysisRows(songs, 20) || "  - 추천곡이 로딩되면 곡별 코드 진행과 창작 적용 진행을 표시합니다.",
           "",
@@ -3443,7 +4076,7 @@
           `- 후크 TOP: ${formatCounts(stats.topHooks)}`,
           `- 출처 TOP: ${formatCounts(stats.topSources)}`,
           `- 가사/정서 TOP: ${formatCounts(stats.topThemes)}`,
-          `- 세부 분석 보유: ${stats.detailedCount}/${songs.length}곡, 코드 정보 보유: ${stats.chordCount}/${songs.length}곡, 저신뢰 차트-only 행: ${stats.lowCount}/${songs.length}곡`,
+          `- 세부 분석 보유: ${stats.detailedCount}/${songs.length}곡, 코드 정보 보유: ${stats.chordCount}/${songs.length}곡, 후렴/가사 후크: ${stats.lyricHookCount}/${songs.length}곡, 후크 멜로디: ${stats.melodyHookCount}/${songs.length}곡, 3종 완료: ${stats.completeAnalysisCount}/${songs.length}곡, 저신뢰 차트-only 행: ${stats.lowCount}/${songs.length}곡`,
           "- 컨셉 체크 질문:",
           "  1. 이 노래의 주인공은 왜 지금 이 말을 해야 하나?",
           "  2. 이 유형의 숨은 욕망과 상처가 한 문장 안에서 충돌하는가?",
@@ -3455,7 +4088,7 @@
 
       function chordSourceSummary(songs) {
         const chords = songs
-          .map((song) => song.chord_progression)
+          .map((song) => songChordAnalysis(song).loop)
           .filter((value) => value && String(value).trim() && String(value).trim().toLowerCase() !== "null");
         if (!chords.length) {
           return "선택곡 대부분은 차트 메타데이터 기반이라 원곡 코드가 미확정입니다. 아래 진행은 새 곡용 안전 설계안입니다.";
@@ -3488,7 +4121,8 @@
         const archetype = resolveArchetype();
         if (archetype.code === "JZ") return true;
         return songs.some((song) => {
-          const body = normalize(`${song.genre} ${song.chart_source} ${song.source_type} ${song.chord_progression} ${song.hook_type}`);
+          const chord = songChordAnalysis(song).loop;
+          const body = normalize(`${song.genre} ${song.chart_source} ${song.source_type} ${chord} ${song.hook_type}`);
           return body.includes("jazz") || body.includes("musicbrainz") || body.includes("ii-v-i") || body.includes("bossa") || body.includes("swing");
         });
       }
@@ -3544,7 +4178,7 @@
 
       function sourceChordSamples(songs) {
         return songs
-          .map((song) => String(song.chord_progression || "").trim())
+          .map((song) => String(songChordAnalysis(song).loop || "").trim())
           .filter((value) => value && value.toLowerCase() !== "null")
           .slice(0, 5);
       }
@@ -4058,10 +4692,22 @@
         });
 
         $("songGrid").addEventListener("click", (event) => {
+          const clearButton = event.target.closest("[data-clear-analysis]");
+          if (clearButton) {
+            clearSongAnalysis(clearButton.dataset.clearAnalysis);
+            return;
+          }
           const button = event.target.closest("[data-add]");
           if (!button) return;
           const song = state.filtered.find((item) => identity(item) === button.dataset.add);
           if (song) addSong(song);
+        });
+
+        $("songGrid").addEventListener("submit", (event) => {
+          const form = event.target.closest("[data-analysis-form]");
+          if (!form) return;
+          event.preventDefault();
+          saveSongAnalysis(form);
         });
 
         $("selectedList").addEventListener("click", (event) => {
@@ -4098,7 +4744,8 @@
         try {
           const ledger = await loadLedger();
           state.ledger = ledger;
-          state.songs = sortSongs(ledger.songs || []);
+          loadAnalysisEdits();
+          state.songs = sortSongs(applyAnalysisEdits(ledger.songs || []));
           fillSelect("countryFilter", uniqueOptions(state.songs, "country"), "전체 국가");
           fillSelect("genreFilter", uniqueOptions(state.songs, "genre"), "전체 장르");
           fillSelect("hookFilter", uniqueOptions(state.songs, "hook_type"), "전체 후크");

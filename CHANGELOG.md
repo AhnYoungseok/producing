@@ -12,6 +12,8 @@
 
 ### Added
 
+- Added public-site reference-song analysis panels for the three required core fields: chorus/hook lyric excerpt, chord progression analysis, and hook melody analysis.
+- Added local public-site editing for chorus/hook excerpts, lyric source/input/permission/visibility/confidence metadata, section chord progressions, Roman numeral conversion, harmonic interpretation, and hook melody summaries.
 - Added Composer Coach hook-melody sketches directly under the lyric hook examples, with three generated contour/rhythm variants and browser Web Audio playback for quick auditioning.
 - Added `POST /api/composer/{project_id}/reset` to restart the Composer Coach concept flow without manually editing the database.
 - Added and tested the bulk Hook Lab summary response shape for `GET /api/library/hook-summaries`, including country, year, BPM, key, hook cue/type/location, melody summaries, lyrics source status, confidence, and updated timestamps.
@@ -32,6 +34,7 @@
 - Added per-reference chord progression analysis to the public-site brief and song detail cards, including raw chord availability, functional family, confidence/source status, and a transformed new-song progression for each recommended song.
 - Removed age/speaker-based concept categorization from the public-site concept picker and brief copy; concept selection now starts from speaking position, viewpoint, tone, attitude, emotion, situation, and sound.
 - Made the public-site persona graph interactive: dragging the center point now adjusts concept/emotion axes, persists the adjustment, and recalculates archetype, recommended songs, and creation brief around the new coordinates.
+- Updated the public-site creation brief so recommended-song chorus/hook lyric status, per-section chord/Roman analysis, and hook melody status are reflected in the concept brief and statistics.
 - Replaced broken Korean UI copy in Hook Lab and Composer Coach with clear Korean workflow/status text.
 
 ### Verified
