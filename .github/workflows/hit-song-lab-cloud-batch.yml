@@ -5,12 +5,18 @@ on:
     paths:
       - ".github/workflows/hit-song-lab-cloud-batch.yml"
       - "backend/scripts/cloud_hit_song_batch.py"
+      - "backend/scripts/backfill_billboard_hot100.py"
       - "backend/seeds/cloud_reference_queue.json"
       - "backend/seeds/cloud_reference_fallback_hits.json"
       - "backend/requirements-cloud.txt"
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
+    inputs:
+      target_total:
+        description: "Optional one-time target total_after_baseline for Billboard Hot 100 backfill"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -39,8 +45,15 @@ jobs:
       - name: Install cloud batch dependencies
         run: python -m pip install -r backend/requirements-cloud.txt
 
-      - name: Add 10 unique reference songs to cloud ledger and Google Sheets when configured
-        run: python backend/scripts/cloud_hit_song_batch.py --batch-size 10
+      - name: Add unique reference songs to cloud ledger
+        env:
+          BACKFILL_TARGET_TOTAL: ${{ github.event.inputs.target_total }}
+        run: |
+          if [ -n "$BACKFILL_TARGET_TOTAL" ]; then
+            python backend/scripts/backfill_billboard_hot100.py --target-total "$BACKFILL_TARGET_TOTAL"
+          else
+            python backend/scripts/cloud_hit_song_batch.py --batch-size 10 || python -c 'import json, subprocess; from pathlib import Path; ledger=json.loads(Path("cloud_ledger/song_library.json").read_text(encoding="utf-8")); target=int(ledger.get("total_after_baseline") or 0)+10; subprocess.check_call(["python", "backend/scripts/backfill_billboard_hot100.py", "--target-total", str(target)])'
+          fi
 
       - name: Commit cloud ledger
         run: |

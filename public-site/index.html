@@ -335,6 +335,12 @@
         padding: 14px 16px 16px;
       }
 
+      .load-more {
+        display: flex;
+        justify-content: center;
+        padding: 0 16px 16px;
+      }
+
       .song-card {
         min-height: 300px;
         padding: 14px;
@@ -706,6 +712,9 @@
           </div>
 
           <div id="songGrid" class="song-grid"></div>
+          <div class="load-more">
+            <button id="loadMoreButton" class="secondary" type="button">더 보기</button>
+          </div>
         </section>
 
         <aside class="sidebar">
@@ -751,6 +760,7 @@
         filtered: [],
         selected: [],
         activePreset: "",
+        renderLimit: 80,
       };
 
       const bpmBuckets = [
@@ -764,6 +774,7 @@
 
       const presets = [
         { id: "latest", label: "최신 추가" },
+        { id: "lyrical", label: "서정 팝/발라드" },
         { id: "us", label: "US 싱글 차트형" },
         { id: "kpop", label: "K-pop 글로벌형" },
         { id: "dance", label: "댄스/업템포" },
@@ -826,6 +837,13 @@
 
       async function loadLedger() {
         setStatus("GitHub 데이터 읽는 중");
+        const rawResponse = await fetch(`${LEDGER_RAW_URL}?cache=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (rawResponse.ok) {
+          return rawResponse.json();
+        }
+
         const apiResponse = await fetch(`${LEDGER_API_URL}&cache=${Date.now()}`, {
           cache: "no-store",
           headers: { Accept: "application/vnd.github+json" },
@@ -837,13 +855,7 @@
           }
         }
 
-        const rawResponse = await fetch(`${LEDGER_RAW_URL}?cache=${Date.now()}`, {
-          cache: "no-store",
-        });
-        if (!rawResponse.ok) {
-          throw new Error(`데이터 응답 오류: ${rawResponse.status}`);
-        }
-        return rawResponse.json();
+        throw new Error(`데이터 응답 오류: raw ${rawResponse.status}, api ${apiResponse.status}`);
       }
 
       function sortSongs(songs) {
@@ -936,6 +948,7 @@
 
         if (preset === "us") return country === "us" || body.includes("billboard") || body.includes("hot 100");
         if (preset === "kpop") return country.includes("korea") || country === "kr" || genre.includes("k pop") || genre.includes("kpop");
+        if (preset === "lyrical") return genre.includes("ballad") || genre.includes("soft") || genre.includes("lyrical") || body.includes("longing") || body.includes("memory") || body.includes("healing") || body.includes("intimate");
         if (preset === "dance") return genre.includes("dance") || (bpm && bpm >= 118);
         if (preset === "ballad") return genre.includes("ballad") || body.includes("vocal") || body.includes("lyric statement");
         if (preset === "hiphop") return genre.includes("hip") || genre.includes("rap") || genre.includes("trap") || hook.includes("beat pocket");
@@ -1070,16 +1083,21 @@
 
       function renderSongs() {
         state.filtered = filteredSongs();
+        const visibleSongs = state.filtered.slice(0, state.renderLimit);
         $("resultCount").textContent = `${number(state.filtered.length)}곡`;
         renderExploreSummary();
 
         const grid = $("songGrid");
         if (!state.filtered.length) {
           grid.innerHTML = `<div class="empty">조건에 맞는 공개 상세곡이 없습니다.</div>`;
+          $("loadMoreButton").style.display = "none";
           return;
         }
 
-        grid.innerHTML = state.filtered
+        $("loadMoreButton").style.display = visibleSongs.length < state.filtered.length ? "inline-flex" : "none";
+        $("loadMoreButton").textContent = `더 보기 (${number(visibleSongs.length)} / ${number(state.filtered.length)})`;
+
+        grid.innerHTML = visibleSongs
           .map((song) => {
             const key = identity(song);
             const selected = isSelected(song);
@@ -1257,6 +1275,7 @@
 
       function applyPreset(id) {
         state.activePreset = state.activePreset === id ? "" : id;
+        state.renderLimit = 80;
         if (!state.activePreset || !["90-110", "125-140"].includes(state.activePreset)) {
           $("bpmFilter").value = "";
         }
@@ -1271,6 +1290,7 @@
           const eventName = id === "searchInput" ? "input" : "change";
           $(id).addEventListener(eventName, () => {
             if (id !== "searchInput") state.activePreset = "";
+            state.renderLimit = 80;
             renderChips();
             renderSongs();
           });
@@ -1306,6 +1326,10 @@
         $("randomButton").addEventListener("click", chooseRandom);
         $("recipeButton").addEventListener("click", buildRecipe);
         $("copyRecipeButton").addEventListener("click", copyRecipe);
+        $("loadMoreButton").addEventListener("click", () => {
+          state.renderLimit += 80;
+          renderSongs();
+        });
       }
 
       async function refresh() {
