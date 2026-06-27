@@ -287,6 +287,8 @@
         margin: 3px 0 0;
         font-size: 19px;
         line-height: 1.25;
+        overflow-wrap: anywhere;
+        word-break: keep-all;
       }
 
       .concept-note {
@@ -368,16 +370,16 @@
       }
 
       .shape-diamond {
-        width: 76px;
-        height: 76px;
-        border-radius: 10px;
+        width: 88px;
+        height: 64px;
+        border-radius: 0;
         padding: 8px;
-        transform: rotate(45deg);
+        clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
       }
 
       .shape-diamond span {
         display: inline-block;
-        transform: rotate(-45deg);
+        transform: none;
       }
 
       .shape-tile {
@@ -936,6 +938,20 @@
           min-height: 68vh;
           max-height: 76vh;
           font-size: 14px;
+        }
+
+        .concept-title {
+          font-size: 18px;
+        }
+
+        .shape-circle {
+          width: 74px;
+          height: 74px;
+        }
+
+        .shape-diamond {
+          width: 82px;
+          height: 62px;
         }
 
         .finder {
