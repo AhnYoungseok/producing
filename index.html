@@ -533,6 +533,31 @@
         font-size: 12px;
       }
 
+      .selected-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .selected-actions a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0 8px;
+        background: #fff;
+        color: var(--teal-dark);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .selected-actions a:hover {
+        border-color: var(--teal);
+        text-decoration: none;
+      }
+
       .stack {
         display: grid;
         gap: 10px;
@@ -567,6 +592,9 @@
       }
 
       .recipe-body {
+        max-height: min(58vh, 620px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
         padding: 11px;
         white-space: pre-wrap;
         color: var(--ink);
@@ -1082,6 +1110,10 @@
         ].filter(Boolean);
       }
 
+      function youtubeUrl(song) {
+        return song.youtube_url || `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.artist} ${song.title} official`)}`;
+      }
+
       function renderSongs() {
         state.filtered = filteredSongs();
         const visibleSongs = state.filtered.slice(0, state.renderLimit);
@@ -1106,7 +1138,7 @@
               .map((tag, index) => `<span class="tag ${index === 0 ? "blue" : index === 3 ? "amber" : ""}">${escapeHtml(tag)}</span>`)
               .join("");
             const hook = [song.hook_cue, song.hook_type, song.hook_location].filter(Boolean).join(" / ");
-            const youtube = song.youtube_url || `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.artist} ${song.title} official`)}`;
+            const youtube = youtubeUrl(song);
 
             return `
               <article class="song-card">
@@ -1171,13 +1203,17 @@
         list.innerHTML = state.selected
           .map((song) => {
             const key = identity(song);
+            const youtube = youtubeUrl(song);
             return `
               <div class="selected-row">
                 <div>
                   <div class="selected-title">${escapeHtml(song.title)}</div>
                   <div class="selected-meta">${escapeHtml(song.artist)} · ${escapeHtml(song.genre || "-")} · ${escapeHtml(song.bpm || "-")} BPM</div>
                 </div>
-                <button class="ghost" type="button" data-remove="${escapeHtml(key)}">삭제</button>
+                <div class="selected-actions">
+                  <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube</a>
+                  <button class="ghost" type="button" data-remove="${escapeHtml(key)}">삭제</button>
+                </div>
               </div>
             `;
           })
@@ -1203,6 +1239,101 @@
         return [...new Set(values.filter(Boolean))].slice(0, limit).join(" / ") || "-";
       }
 
+      function averageBpmNumber(songs) {
+        const bpms = songs.map(getBpm).filter(Boolean);
+        if (!bpms.length) return null;
+        return Math.round(bpms.reduce((sum, bpm) => sum + bpm, 0) / bpms.length);
+      }
+
+      function chordSourceSummary(songs) {
+        const chords = songs
+          .map((song) => song.chord_progression)
+          .filter((value) => value && String(value).trim() && String(value).trim().toLowerCase() !== "null");
+        if (!chords.length) {
+          return "선택곡 대부분은 차트 메타데이터 기반이라 원곡 코드가 미확정입니다. 아래 진행은 새 곡용 안전 설계안입니다.";
+        }
+        return shortList(chords, 3);
+      }
+
+      function inferKeyCenter(songs) {
+        const keys = songs.map((song) => song.key).filter(Boolean);
+        if (keys.length) return `${shortList(keys, 3)} 중 보컬 레인지에 맞춰 조옮김`;
+        const dominantGenre = normalize(commonValue(songs, (song) => song.genre));
+        const avg = averageBpmNumber(songs);
+        if (dominantGenre.includes("ballad") || dominantGenre.includes("soft") || (avg && avg < 95)) {
+          return "G major / E minor 또는 C major / A minor";
+        }
+        return "C major / A minor 또는 F major / D minor";
+      }
+
+      function harmonicBlueprint(songs) {
+        const dominantGenre = normalize(commonValue(songs, (song) => song.genre));
+        const avg = averageBpmNumber(songs);
+        const isSoft = dominantGenre.includes("ballad") || dominantGenre.includes("soft") || (avg && avg < 95);
+        const tonalCenter = inferKeyCenter(songs);
+        const emotionalColor = isSoft ? "서정 팝/발라드" : "멜로딕 팝";
+
+        return [
+          `- 원곡 코드 참고: ${chordSourceSummary(songs)}`,
+          `- 새 곡 권장 중심키: ${tonalCenter}`,
+          `- 화성 목표: ${emotionalColor} 기준으로 I, vi, IV, V를 뼈대로 잡고 add9, maj7, sus4, 세컨더리 도미넌트로 감정선을 만듭니다.`,
+          "",
+          "A안: G major 기준 서정 팝 발라드 진행",
+          "Verse 8마디:",
+          "| G(add9) | D/F# | Em7 | Cmaj7 |",
+          "| Am7 | Dsus4 - D | G/B | Cadd9 - D |",
+          "- 기능: I(add9) - V6 - vi7 - IVmaj7 - ii7 - Vsus4/V - I6 - IVadd9/V",
+          "- 역할: 1-4마디는 안정과 그리움, 5-8마디는 ii-V 느낌으로 프리코러스 진입 준비.",
+          "",
+          "Pre-Chorus 8마디:",
+          "| Em7 | Cmaj7 | G/D | D/F# |",
+          "| Am7 | B7/D# | Em7 - D/F# | Gsus4 - G |",
+          "- 기능: vi7 - IVmaj7 - I64 - V6 - ii7 - V/vi - vi7/V6 - Isus4/I",
+          "- 역할: B7/D#는 E minor로 잠깐 당기는 세컨더리 도미넌트라 감정 압력을 만들고, Gsus4-G로 코러스 문을 엽니다.",
+          "",
+          "Chorus 8마디:",
+          "| Cadd9 | G/B | Am7 | Dsus4 - D |",
+          "| G | D/F# | Em7 | Cadd9 - D |",
+          "- 기능: IVadd9 - I6 - ii7 - Vsus4/V - I - V6 - vi7 - IVadd9/V",
+          "- 역할: 코러스를 IV에서 시작하면 밝지만 살짝 아픈 느낌이 나고, 5마디 I 착지가 제목 훅의 해상도처럼 들립니다.",
+          "",
+          "Bridge 8마디:",
+          "| Em9 | Cmaj7(#11) | G/D | D7sus4 - D7 |",
+          "| Am9 | C/D | G/B - B7/D# | Em7 - D |",
+          "- 기능: vi9 - IVmaj7(#11) - I64 - V7sus/V7 - ii9 - IV/V - I6/V/vi - vi/V",
+          "- 역할: #11, 9th, sus4는 화려함보다 긴장색입니다. 탑노트는 한 음이나 두 음만 움직이게 보이싱하세요.",
+          "",
+          "B안: E minor 기준 더 쓸쓸한 진행",
+          "Verse: | Em9 | Cmaj7 | G | D/F# | Am7 | B7(b9) | Em9 | Dsus4 - D |",
+          "Chorus: | Cmaj7 | D | Em7 | G/B | Cadd9 | Dsus4 - D | G | B7/D# |",
+          "- B7(b9)는 너무 재즈처럼 들리면 B7sus4-B7로 단순화합니다.",
+          "",
+          "보이싱 지시:",
+          "- 피아노/기타는 3도와 7도를 먼저 잡고, 멜로디가 비는 곳에 add9 또는 sus4만 얹습니다.",
+          "- 베이스는 G - F# - E - C처럼 하행하거나, 코러스에서 C - B - A - D로 반대로 움직여 훅을 띄웁니다.",
+          "- 훅 첫 음이 3도나 5도에 걸리면 안정적이고, 9도에 걸리면 더 현대적인 서정 팝 느낌이 납니다.",
+        ].join("\n");
+      }
+
+      function structureBlueprint(songs) {
+        const avg = averageBpmNumber(songs);
+        const tempoNote = avg ? `${avg} BPM 근처` : "80-105 BPM ballad 또는 105-124 BPM soft pop";
+        return [
+          `- 목표 템포: ${tempoNote}. 너무 느리면 8비트 하이햇이나 기타 아르페지오로 흐름을 유지합니다.`,
+          "0:00 Intro 4마디: 코드 루프의 첫 2마디만 보여주고, 훅 리듬의 그림자를 악기 모티프로 짧게 둡니다.",
+          "0:12 Verse 1 8마디: 낮은 음역, 짧은 문장, 코드 변화는 크게 움직이지 않게 둡니다.",
+          "0:36 Pre-Chorus 8마디: 베이스 하행/상행을 분명히 만들고, B7/D# 같은 당김 화음으로 코러스 직전 압력을 올립니다.",
+          "0:58 Chorus 8-16마디: 제목 훅은 1마디 안에 들리게 하고, 5마디째 한 번 더 해상합니다.",
+          "1:24 Post/Tag 2-4마디: 가사보다 모음/짧은 제목 큐로 기억 장치를 남깁니다.",
+          "1:34 Verse 2 8마디: 드럼이나 서브 리듬을 추가하되 코드 밀도는 1절보다 조금만 높입니다.",
+          "1:58 Pre-Chorus 8마디: 코러스 전 마지막 2마디를 비워 보컬 호흡을 확보합니다.",
+          "2:20 Chorus 16마디: 첫 8마디는 익숙하게, 뒤 8마디는 하모니/대답 보컬/상행 애드립으로 확장합니다.",
+          "2:52 Bridge 8마디: 상대단조나 IVmaj7(#11) 색으로 시점을 바꾼 뒤, 마지막 2마디는 드럼을 덜어냅니다.",
+          "3:16 Final Chorus 16마디: 첫 줄은 거의 무반주 또는 얇게 시작하고, 5마디부터 전체 레이어를 엽니다.",
+          "3:48 Outro 4마디: 제목 큐나 Intro 모티프를 한 번만 남기고 끝냅니다.",
+        ].join("\n");
+      }
+
       function buildRecipe() {
         const songs = state.selected;
         if (songs.length < 2) {
@@ -1216,32 +1347,43 @@
         const hooks = shortList(songs.map((song) => song.hook_type));
         const hookLocations = shortList(songs.map((song) => song.hook_location));
         const keys = shortList(songs.map((song) => song.key));
-        const chords = shortList(songs.map((song) => song.chord_progression));
         const themes = shortList(songs.map((song) => song.lyric_theme), 2);
         const arrangements = shortList(songs.map((song) => song.arrangement), 2);
         const vocals = shortList(songs.map((song) => song.vocal), 2);
         const mixes = shortList(songs.map((song) => song.mixing), 2);
         const dominantHook = commonValue(songs, (song) => song.hook_type);
         const dominantGenre = commonValue(songs, (song) => song.genre);
+        const harmonyPlan = harmonicBlueprint(songs);
+        const structurePlan = structureBlueprint(songs);
 
         const references = songs.map((song) => `${song.title} - ${song.artist}`).join(" + ");
         const brief = [
           `참고 조합: ${references}`,
           idea ? `내 곡 키워드: ${idea}` : "내 곡 키워드: 직접 입력 전",
           "",
-          "[방향]",
+          "[방향 요약]",
           `- 장르 중심: ${dominantGenre} 기반, 보조 색채는 ${genres}`,
           `- 템포/키 기준: ${avgBpm}, 후보 키 ${keys}`,
-          `- 코드 접근: ${chords}`,
+          "- 아래 코드는 원곡 복제가 아니라 선택곡 분위기를 바탕으로 만든 새 곡용 설계안입니다.",
+          "",
+          "[코드/화성 우선 설계]",
+          harmonyPlan,
+          "",
+          "[곡 구조 우선 설계]",
+          structurePlan,
           "",
           "[후크 설계]",
+          `- 참고 후크 계열: ${hooks}`,
           `- 핵심 방식: ${dominantHook}`,
           `- 위치: ${hookLocations}`,
-          `- 짧은 제목/시그니처 큐를 만들되, 참고곡의 멜로디 윤곽이나 리듬 말맛은 피합니다.`,
+          "- 제목/시그니처 큐는 2-6음절 또는 3-5단어 안에서 만들고, 코러스 1마디 안에 첫 노출을 둡니다.",
+          "- 훅 멜로디는 코드의 3도 또는 9도에서 시작해도 좋습니다. 3도는 안정, 9도는 더 현대적이고 서정적인 색입니다.",
+          "- 참고곡의 멜로디 윤곽, 리듬 말맛, 애드립, 사운드 시그니처는 피하고 새 문장과 새 리듬으로 씁니다.",
           "",
           "[가사/상황]",
           `- 정서 재료: ${themes}`,
           "- 화자는 한 문장으로 말할 수 있는 상황을 잡고, 벌스는 장면, 프리코러스는 압력, 코러스는 결론으로 씁니다.",
+          "- 코러스 첫 줄은 코드 해상 지점과 같은 의미의 문장으로 둡니다. 예: 인정, 고백, 포기, 돌아섬, 다시 시작.",
           "",
           "[편곡/보컬/믹스]",
           `- 편곡: ${arrangements}`,
