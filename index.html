@@ -943,14 +943,15 @@
         const genre = normalize(song.genre);
         const country = normalize(song.country);
         const hook = normalize(`${song.hook_type} ${song.hook_cue} ${song.hook_location}`);
+        const lyricTheme = normalize(song.lyric_theme);
         const body = normalize(textOf(song));
         const bpm = getBpm(song);
 
         if (preset === "us") return country === "us" || body.includes("billboard") || body.includes("hot 100");
         if (preset === "kpop") return country.includes("korea") || country === "kr" || genre.includes("k pop") || genre.includes("kpop");
-        if (preset === "lyrical") return genre.includes("ballad") || genre.includes("soft") || genre.includes("lyrical") || body.includes("longing") || body.includes("memory") || body.includes("healing") || body.includes("intimate");
+        if (preset === "lyrical") return genre.includes("ballad") || genre.includes("soft") || genre.includes("lyrical") || lyricTheme.includes("longing") || lyricTheme.includes("regret") || lyricTheme.includes("healing") || lyricTheme.includes("intimate");
         if (preset === "dance") return genre.includes("dance") || (bpm && bpm >= 118);
-        if (preset === "ballad") return genre.includes("ballad") || body.includes("vocal") || body.includes("lyric statement");
+        if (preset === "ballad") return genre.includes("ballad") || genre.includes("soft") || lyricTheme.includes("longing") || lyricTheme.includes("regret") || lyricTheme.includes("healing");
         if (preset === "hiphop") return genre.includes("hip") || genre.includes("rap") || genre.includes("trap") || hook.includes("beat pocket");
         if (preset === "title") return hook.includes("title") || hook.includes("제목");
         if (preset === "groove") return hook.includes("groove") || body.includes("groove");
