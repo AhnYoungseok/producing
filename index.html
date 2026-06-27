@@ -1862,6 +1862,17 @@
         return score;
       }
 
+      function hitEvidence(song) {
+        const rank = numericValue(song.chart_rank, 0);
+        const parts = [];
+        if (rank) parts.push(`#${rank}`);
+        if (song.chart_source) parts.push(song.chart_source);
+        else if (song.source_type) parts.push(song.source_type);
+        if (song.weeks_on_chart_signal) parts.push(`지속성 ${song.weeks_on_chart_signal}`);
+        parts.push(`히트점수 ${Math.round(hitScore(song))}`);
+        return parts.join(" · ");
+      }
+
       function sortByHitPriority(songs) {
         return [...songs].sort((a, b) => {
           const scoreDiff = hitScore(b) - hitScore(a);
@@ -2074,6 +2085,7 @@
               .join("");
             const hook = [song.hook_cue, song.hook_type, song.hook_location].filter(Boolean).join(" / ");
             const youtube = youtubeUrl(song);
+            const evidence = hitEvidence(song);
 
             return `
               <article class="song-card">
@@ -2085,6 +2097,10 @@
                   <span class="date-pill">${escapeHtml(compactDate(song.added_date || song.added_at))}</span>
                 </div>
                 <div class="tags">${tags}</div>
+                <div class="field">
+                  <div class="field-label">Hit Basis</div>
+                  <div class="field-value">${escapeHtml(evidence)}</div>
+                </div>
                 <div class="field">
                   <div class="field-label">Hook</div>
                   <div class="field-value">${escapeHtml(hook || "-")}</div>
@@ -2295,15 +2311,15 @@
         const archetype = resolveArchetype();
         const scored = source
           .map((song) => ({ song, score: conceptSongScore(song, archetype) }))
-          .sort((a, b) => b.score - a.score || hitScore(b.song) - hitScore(a.song));
+          .sort((a, b) => hitScore(b.song) - hitScore(a.song) || b.score - a.score);
         return mergeUniqueSongs(scored.map((item) => item.song)).slice(0, limit);
       }
 
       function referenceSongsForBrief() {
         const baseHits = sortByHitPriority(state.filtered.length ? state.filtered : state.songs).slice(0, 20);
         const auto = hasConceptSeed() ? conceptReferenceSongs(20) : baseHits;
-        if (hasConceptSeed()) return mergeUniqueSongs([...state.selected, ...auto]).slice(0, 20);
-        if (state.selected.length >= 2) return mergeUniqueSongs([...state.selected, ...baseHits]).slice(0, 20);
+        if (hasConceptSeed()) return sortByHitPriority(mergeUniqueSongs([...state.selected, ...auto])).slice(0, 20);
+        if (state.selected.length >= 2) return sortByHitPriority(mergeUniqueSongs([...state.selected, ...baseHits])).slice(0, 20);
         return baseHits;
       }
 
