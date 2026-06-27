@@ -21,6 +21,9 @@ FALLBACK_QUEUE_PATH = ROOT_DIR / "backend" / "seeds" / "cloud_reference_fallback
 LEDGER_PATH = ROOT_DIR / "cloud_ledger" / "song_library.json"
 LEDGER_CSV_PATH = ROOT_DIR / "cloud_ledger" / "song_library.csv"
 SUMMARY_CSV_PATH = ROOT_DIR / "cloud_ledger" / "summary.csv"
+SHEET_CHUNKS_DIR = ROOT_DIR / "cloud_ledger" / "sheet_chunks"
+SHEET_CHUNK_SIZE = 3500
+SHEET_MIN_CHUNKS = 20
 
 
 def main() -> None:
@@ -228,11 +231,48 @@ def _save_cloud_exports(ledger: dict[str, Any]) -> None:
         ["baseline_count", ledger.get("baseline", {}).get("count", 0), "existing local DB rows are stored as identity hashes only"],
         ["public_cloud_song_rows", len(songs), "rows visible in cloud_ledger/song_library.csv"],
         ["updated_at", ledger.get("updated_at", ""), "last GitHub Actions ledger update time"],
-        ["source", "GitHub Actions cloud ledger", "Google Sheets can mirror this with IMPORTDATA"],
+        ["source", "GitHub Actions cloud ledger", "Google Sheets mirrors chunked CSV files with IMPORTDATA"],
     ]
     with SUMMARY_CSV_PATH.open("w", newline="", encoding="utf-8-sig") as file:
         writer = csv.writer(file)
         writer.writerows(summary_rows)
+    _save_sheet_chunks(songs)
+
+
+def _save_sheet_chunks(songs: list[dict[str, Any]]) -> None:
+    fieldnames = [
+        "no",
+        "added_date",
+        "title",
+        "artist",
+        "genre",
+        "country",
+        "release_year",
+        "chart_source",
+        "chart_rank",
+        "source_type",
+        "data_confidence",
+    ]
+    SHEET_CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
+    chunk_count = max(SHEET_MIN_CHUNKS, (len(songs) + SHEET_CHUNK_SIZE - 1) // SHEET_CHUNK_SIZE)
+    expected = {f"song_library_sheet_part_{index:03d}.csv" for index in range(1, chunk_count + 1)}
+    for stale in SHEET_CHUNKS_DIR.glob("song_library_sheet_part_*.csv"):
+        if stale.name not in expected:
+            stale.unlink()
+
+    for chunk_index in range(chunk_count):
+        start = chunk_index * SHEET_CHUNK_SIZE
+        chunk = songs[start : start + SHEET_CHUNK_SIZE]
+        path = SHEET_CHUNKS_DIR / f"song_library_sheet_part_{chunk_index + 1:03d}.csv"
+        with path.open("w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
+            if chunk_index == 0:
+                writer.writeheader()
+            if chunk:
+                for offset, song in enumerate(chunk, start=start + 1):
+                    writer.writerow({"no": offset, **song})
+            else:
+                writer.writerow({name: "" for name in fieldnames})
 
 
 def _display_path(path: Path) -> str:
