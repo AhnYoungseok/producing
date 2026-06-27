@@ -30,6 +30,7 @@
 - Changed the public-site harmony brief generator so it selects distinct harmony palettes from concept axes, sound lane, BPM/genre signals, and available chord samples instead of repeating one fixed G major / E minor fallback.
 - Added K-pop/global groove harmony detection so Korean pop hooks, post-chorus/performance hooks, drum grooves, and bass/synth references produce dedicated F/D minor or Ab/F minor progression plans instead of falling back to the generic ballad template.
 - Added per-reference chord progression analysis to the public-site brief and song detail cards, including raw chord availability, functional family, confidence/source status, and a transformed new-song progression for each recommended song.
+- Removed age/speaker-based concept categorization from the public-site concept picker and brief copy; concept selection now starts from speaking position, viewpoint, tone, attitude, emotion, situation, and sound.
 - Replaced broken Korean UI copy in Hook Lab and Composer Coach with clear Korean workflow/status text.
 
 ### Verified
