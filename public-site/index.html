@@ -453,13 +453,28 @@
         align-items: stretch;
       }
 
+      .persona-map-stack {
+        display: grid;
+        gap: 6px;
+      }
+
       .persona-map {
         position: relative;
         min-height: 170px;
         overflow: hidden;
         border: 1px solid var(--line);
         border-radius: 8px;
+        cursor: crosshair;
+        touch-action: none;
         background:
+          linear-gradient(90deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) calc(50% + 1px), transparent calc(50% + 1px)),
+          linear-gradient(0deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) calc(50% + 1px), transparent calc(50% + 1px)),
+          #fbfdff;
+      }
+
+      .persona-map-tuned {
+        background:
+          radial-gradient(circle at var(--persona-x, 50%) var(--persona-y, 50%), rgba(20, 184, 166, 0.18), transparent 34%),
           linear-gradient(90deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) calc(50% + 1px), transparent calc(50% + 1px)),
           linear-gradient(0deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) calc(50% + 1px), transparent calc(50% + 1px)),
           #fbfdff;
@@ -506,6 +521,20 @@
         background: var(--teal);
         box-shadow: 0 6px 18px rgba(14, 116, 144, 0.28);
         transform: translate(-50%, -50%);
+        cursor: grab;
+        touch-action: none;
+        z-index: 2;
+      }
+
+      .persona-dot:active {
+        cursor: grabbing;
+      }
+
+      .persona-map-hint {
+        color: var(--quiet);
+        font-size: 10px;
+        font-weight: 850;
+        line-height: 1.35;
       }
 
       .persona-axis-list {
@@ -1325,6 +1354,7 @@
         filtered: [],
         selected: [],
         conceptSelections: {},
+        axisOverrides: {},
         activePreset: "hit",
         renderLimit: 80,
       };
@@ -2451,9 +2481,14 @@
         return conceptCategories.flatMap((category) => selectedConcepts(category.id));
       }
 
+      function hasAxisOverrides() {
+        return Boolean(state.axisOverrides && Object.keys(state.axisOverrides).length);
+      }
+
       function conceptSeedText() {
         const { concept = "", idea = "" } = conceptStateSafe();
-        return [...selectedConceptLabels(), concept, idea].filter(Boolean).join(" ");
+        const dragSeed = hasAxisOverrides() ? "좌표 드래그 감정축 조정" : "";
+        return [...selectedConceptLabels(), dragSeed, concept, idea].filter(Boolean).join(" ");
       }
 
       function conceptStateSafe() {
@@ -2462,6 +2497,7 @@
           concept: $("conceptInput")?.value?.trim() || "",
           idea: $("ideaInput")?.value?.trim() || "",
           selections: state.conceptSelections,
+          axisOverrides: state.axisOverrides,
           selectedLine: conceptLineFromSelections(),
         };
       }
@@ -2492,6 +2528,12 @@
         if (manualText.includes("발라드")) scores.energy = clamp(scores.energy - 6);
         if (manualText.includes("고백")) scores.directness = clamp(scores.directness + 10);
         if (manualText.includes("회복")) scores.recovery = clamp(scores.recovery + 10);
+        if (hasAxisOverrides()) {
+          Object.entries(state.axisOverrides).forEach(([axis, value]) => {
+            const weight = axis === "directness" || axis === "energy" ? 0.78 : 0.58;
+            scores[axis] = clamp(scores[axis] * (1 - weight) + Number(value || 50) * weight);
+          });
+        }
         return scores;
       }
 
@@ -2499,6 +2541,35 @@
         if (value >= 68) return high;
         if (value <= 36) return low;
         return mid;
+      }
+
+      function personaAxesFromPoint(xPercent, yPercent) {
+        const directness = clamp(xPercent);
+        const energy = clamp(100 - yPercent);
+        const x = directness - 50;
+        const e = energy - 50;
+        return {
+          directness,
+          energy,
+          longing: clamp(50 + -x * 0.34 + -e * 0.42),
+          recovery: clamp(50 + x * 0.24 + e * 0.42),
+          dignity: clamp(50 + (50 - Math.abs(x)) * 0.18 + -e * 0.28),
+          maturity: clamp(50 + -e * 0.24 + -x * 0.08),
+          experimentation: clamp(50 + Math.abs(x) * 0.24 + Math.abs(e) * 0.18 + (x < -10 && e > 10 ? 8 : 0)),
+          market: clamp(50 + x * 0.28 + e * 0.34),
+        };
+      }
+
+      function axisDragSummary() {
+        if (!hasAxisOverrides()) return "점을 드래그하면 감정축, 추천곡, 브리프가 즉시 바뀝니다.";
+        const axes = state.axisOverrides;
+        const highAxes = conceptAxes
+          .map((axis) => ({ ...axis, value: Math.round(axes[axis.id] ?? 50) }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 3)
+          .map((axis) => `${axis.label} ${axis.value}`)
+          .join(" / ");
+        return `드래그 반영 중: ${highAxes}. 추천곡과 브리프가 이 좌표를 우선 참고합니다.`;
       }
 
       function detailedPersonaCode(axes, archetype) {
@@ -2638,14 +2709,14 @@
         const archetype = resolveArchetype();
         const scored = source
           .map((song) => ({ song, score: conceptSongScore(song, archetype) }))
-          .sort((a, b) => hitScore(b.song) - hitScore(a.song) || b.score - a.score);
+          .sort((a, b) => b.score - a.score || hitScore(b.song) - hitScore(a.song));
         return mergeUniqueSongs(scored.map((item) => item.song)).slice(0, limit);
       }
 
       function referenceSongsForBrief() {
         const baseHits = sortByHitPriority(state.filtered.length ? state.filtered : state.songs).slice(0, 20);
         const auto = hasConceptSeed() ? conceptReferenceSongs(20) : baseHits;
-        if (hasConceptSeed()) return sortByHitPriority(mergeUniqueSongs([...state.selected, ...auto])).slice(0, 20);
+        if (hasConceptSeed()) return mergeUniqueSongs([...state.selected, ...auto]).slice(0, 20);
         if (state.selected.length >= 2) return sortByHitPriority(mergeUniqueSongs([...state.selected, ...baseHits])).slice(0, 20);
         return baseHits;
       }
@@ -3032,6 +3103,7 @@
         const axes = archetype.axes || conceptAxisScores();
         const mapX = clamp(axes.directness || 50, 8, 92);
         const mapY = clamp(100 - (axes.energy || 50), 8, 92);
+        const tuned = hasAxisOverrides();
         const axisRows = conceptAxes
           .map((axis) => {
             const value = Math.round(axes[axis.id] ?? 50);
@@ -3076,12 +3148,15 @@
           <div class="archetype-detail">${escapeHtml(archetype.voice)}</div>
           <div class="archetype-tags">${tags}</div>
           <div class="persona-grid">
-            <div class="persona-map" aria-label="컨셉 좌표">
-              <span class="persona-map-label top">큰 코러스</span>
-              <span class="persona-map-label bottom">저온 독백</span>
-              <span class="persona-map-label left">은유/침묵</span>
-              <span class="persona-map-label right">고백/선언</span>
-              <span class="persona-dot" style="left:${mapX}%; top:${mapY}%"></span>
+            <div class="persona-map-stack">
+              <div class="persona-map ${tuned ? "persona-map-tuned" : ""}" data-persona-map aria-label="컨셉 좌표" style="--persona-x:${mapX}%; --persona-y:${mapY}%">
+                <span class="persona-map-label top">큰 코러스</span>
+                <span class="persona-map-label bottom">저온 독백</span>
+                <span class="persona-map-label left">은유/침묵</span>
+                <span class="persona-map-label right">고백/선언</span>
+                <span class="persona-dot" role="slider" aria-label="컨셉 좌표 드래그" aria-valuetext="직접성 ${Math.round(axes.directness || 50)}, 에너지 ${Math.round(axes.energy || 50)}" style="left:${mapX}%; top:${mapY}%"></span>
+              </div>
+              <div class="persona-map-hint">${escapeHtml(axisDragSummary())}</div>
             </div>
             <div class="persona-axis-list">${axisRows}</div>
           </div>
@@ -3127,6 +3202,7 @@
 
       function clearConceptSelections() {
         state.conceptSelections = {};
+        state.axisOverrides = {};
         $("conceptInput").value = "";
         $("ideaInput").value = "";
         updateConceptSelectionText();
@@ -3142,6 +3218,7 @@
           concept: $("conceptInput").value.trim(),
           idea: $("ideaInput").value.trim(),
           selections: state.conceptSelections,
+          axisOverrides: state.axisOverrides,
           selectedLine: conceptLineFromSelections(),
         };
       }
@@ -3154,6 +3231,7 @@
         try {
           const saved = JSON.parse(localStorage.getItem(CONCEPT_KEY) || "{}");
           state.conceptSelections = saved.selections || {};
+          state.axisOverrides = saved.axisOverrides || {};
           $("conceptInput").value = saved.concept || "";
           $("ideaInput").value = saved.idea || "";
           updateConceptSelectionText();
@@ -3894,6 +3972,54 @@
         }
       }
 
+      function applyPersonaDragPoint(event, rect) {
+        const x = clamp(((event.clientX - rect.left) / rect.width) * 100);
+        const y = clamp(((event.clientY - rect.top) / rect.height) * 100);
+        state.axisOverrides = personaAxesFromPoint(x, y);
+      }
+
+      function refreshAxisDrivenOutputs() {
+        updateConceptSelectionText();
+        renderConceptHints();
+        buildRecipe();
+      }
+
+      function scheduleAxisDrivenOutputs() {
+        if (state.axisFrame) return;
+        state.axisFrame = requestAnimationFrame(() => {
+          state.axisFrame = 0;
+          refreshAxisDrivenOutputs();
+          saveConceptState();
+        });
+      }
+
+      function handlePersonaPointerDown(event) {
+        const map = event.target.closest("[data-persona-map]");
+        if (!map) return;
+        event.preventDefault();
+        const rect = map.getBoundingClientRect();
+        applyPersonaDragPoint(event, rect);
+        scheduleAxisDrivenOutputs();
+        setStatus("컨셉 좌표 조정 중");
+
+        const handleMove = (moveEvent) => {
+          applyPersonaDragPoint(moveEvent, rect);
+          scheduleAxisDrivenOutputs();
+        };
+        const handleUp = () => {
+          window.removeEventListener("pointermove", handleMove);
+          window.removeEventListener("pointerup", handleUp);
+          window.removeEventListener("pointercancel", handleUp);
+          refreshAxisDrivenOutputs();
+          saveConceptState();
+          setStatus("컨셉 좌표 반영됨");
+        };
+
+        window.addEventListener("pointermove", handleMove);
+        window.addEventListener("pointerup", handleUp, { once: true });
+        window.addEventListener("pointercancel", handleUp, { once: true });
+      }
+
       function applyPreset(id) {
         state.activePreset = state.activePreset === id ? "hit" : id;
         state.renderLimit = 80;
@@ -3913,6 +4039,7 @@
           toggleConcept(button.dataset.conceptCategory, button.dataset.conceptValue);
         });
         $("clearConceptButton").addEventListener("click", clearConceptSelections);
+        $("archetypeCard").addEventListener("pointerdown", handlePersonaPointerDown);
 
         ["searchInput", "countryFilter", "genreFilter", "bpmFilter", "hookFilter", "confidenceFilter"].forEach((id) => {
           const eventName = id === "searchInput" ? "input" : "change";
