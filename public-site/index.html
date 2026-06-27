@@ -302,6 +302,119 @@
         gap: 10px;
       }
 
+      .concept-board {
+        display: grid;
+        gap: 10px;
+      }
+
+      .concept-group {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .concept-group-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .concept-group-title span:last-child {
+        color: var(--quiet);
+        font-weight: 800;
+      }
+
+      .shape-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .shape-option {
+        min-height: 40px;
+        border: 1px solid var(--line-strong);
+        background: #fff;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 900;
+        line-height: 1.2;
+        white-space: normal;
+      }
+
+      .shape-option:hover,
+      .shape-option.active {
+        border-color: var(--teal);
+        background: var(--green-soft);
+        color: var(--teal-dark);
+      }
+
+      .shape-circle {
+        width: 76px;
+        height: 76px;
+        border-radius: 999px;
+        padding: 8px;
+      }
+
+      .shape-pill {
+        min-width: 88px;
+        border-radius: 999px;
+        padding: 0 13px;
+      }
+
+      .shape-diamond {
+        width: 76px;
+        height: 76px;
+        border-radius: 10px;
+        padding: 8px;
+        transform: rotate(45deg);
+      }
+
+      .shape-diamond span {
+        display: inline-block;
+        transform: rotate(-45deg);
+      }
+
+      .shape-tile {
+        min-width: 92px;
+        border-radius: 6px;
+        padding: 0 12px;
+      }
+
+      .concept-selection {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fbfdff;
+      }
+
+      .concept-selection-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .concept-selection-title {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .concept-selection-text {
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 900;
+        line-height: 1.45;
+      }
+
       .input-label {
         display: grid;
         gap: 6px;
@@ -879,14 +992,19 @@
                 </div>
                 <div class="concept-note">최신 차트 감각 + 성숙한 화자성 + 히트곡 데이터</div>
               </div>
+              <div id="conceptBoard" class="concept-board"></div>
+              <div class="concept-selection">
+                <div class="concept-selection-top">
+                  <div class="concept-selection-title">선택한 컨셉 조합</div>
+                  <button id="clearConceptButton" class="ghost" type="button">컨셉 비우기</button>
+                </div>
+                <div id="conceptSelectionText" class="concept-selection-text">도형을 선택하면 한 줄 컨셉이 자동으로 만들어집니다.</div>
+              </div>
+              <input id="creatorProfileInput" type="hidden" />
               <div class="concept-grid">
                 <label class="input-label">
-                  나이대 / 성정
-                  <input id="creatorProfileInput" type="text" placeholder="예) 40대, 차분하지만 속은 뜨거움, 서정적이고 집요함" />
-                </label>
-                <label class="input-label">
-                  지금 하고 싶은 말
-                  <textarea id="conceptInput" placeholder="예) 늦게 깨달은 사랑, 지나간 사람에게 담담히 건네는 말, 다시 시작하고 싶은 마음"></textarea>
+                  선택 후 보완 메모
+                  <textarea id="conceptInput" placeholder="선택만으로 부족한 뉘앙스가 있을 때 한 문장만 적으세요. 예) 덤덤하지만 마지막에는 미련이 새어 나왔으면 함"></textarea>
                 </label>
               </div>
               <div id="conceptHints" class="concept-hints"></div>
@@ -1030,6 +1148,7 @@
         songs: [],
         filtered: [],
         selected: [],
+        conceptSelections: {},
         activePreset: "hit",
         renderLimit: 80,
       };
@@ -1065,6 +1184,73 @@
         "성숙한 화자에게 유리한 방향: 과장된 청춘감보다 '겪어본 사람만 말할 수 있는 한 문장'이 컨셉의 힘이 됩니다.",
         "숏폼 경향: 춤보다 장면이 강한 곡도 됩니다. 한 줄 가사, 손동작, 표정, 정지 화면으로 남을 순간을 먼저 잡습니다.",
         "서정곡 경향: 슬픔을 설명하기보다 구체적 사물 하나, 시간 하나, 장소 하나로 감정을 대신 말합니다.",
+      ];
+
+      const conceptCategories = [
+        {
+          id: "voice",
+          title: "화자 / 나이의 결",
+          hint: "1개",
+          max: 1,
+          shape: "circle",
+          options: ["20대의 직진성", "30대의 현실감", "40대의 여운", "50대의 품격", "늦게 피어난 사람", "조용히 뜨거운 사람"],
+        },
+        {
+          id: "temper",
+          title: "성정 / 말투",
+          hint: "최대 2개",
+          max: 2,
+          shape: "pill",
+          options: ["차분하지만 깊음", "집요한 서정성", "담담한 체념", "유머 뒤 외로움", "단단한 자기고백", "다정한 거리감", "속은 뜨거움"],
+        },
+        {
+          id: "emotion",
+          title: "핵심 감정",
+          hint: "최대 2개",
+          max: 2,
+          shape: "diamond",
+          options: ["미련", "회복", "늦은 깨달음", "고백", "후회", "해방감", "그리움", "다시 시작", "설렘", "외로움"],
+        },
+        {
+          id: "situation",
+          title: "상황 / 장면",
+          hint: "최대 2개",
+          max: 2,
+          shape: "tile",
+          options: ["비 오는 밤", "헤어진 뒤 첫 아침", "오래된 메시지", "집 앞 골목", "여행 끝", "출근길 혼잣말", "계절이 바뀜", "무대 위 고백"],
+        },
+        {
+          id: "relationship",
+          title: "관계의 대상",
+          hint: "1개",
+          max: 1,
+          shape: "circle",
+          options: ["떠난 사람", "아직 못 보낸 사람", "오래된 친구", "새로 만난 사람", "나 자신", "가족과 시간"],
+        },
+        {
+          id: "sound",
+          title: "사운드 레인",
+          hint: "1개",
+          max: 1,
+          shape: "pill",
+          options: ["피아노 발라드", "어쿠스틱 팝", "90-110 BPM 미드템포", "120 BPM 댄스팝", "R&B 팝", "K-pop 글로벌", "country-pop", "synth soft pop"],
+        },
+        {
+          id: "trend",
+          title: "최신 히트 문법",
+          hint: "최대 2개",
+          max: 2,
+          shape: "tile",
+          options: ["짧은 제목 큐", "첫 45초 안 훅", "포스트훅 반복", "숏폼 한 장면", "장르 혼합", "낮은 벌스/큰 코러스", "말하듯 시작", "마지막 코러스 확장"],
+        },
+        {
+          id: "title",
+          title: "제목 / 훅 모양",
+          hint: "1개",
+          max: 1,
+          shape: "diamond",
+          options: ["한 단어 제목", "문장형 제목", "질문형 제목", "장소 제목", "시간 제목", "반어적 제목"],
+        },
       ];
 
       const $ = (id) => document.getElementById(id);
@@ -1585,11 +1771,113 @@
         return Math.round(bpms.reduce((sum, bpm) => sum + bpm, 0) / bpms.length);
       }
 
+      function conceptCategory(id) {
+        return conceptCategories.find((category) => category.id === id);
+      }
+
+      function selectedConcepts(id) {
+        return state.conceptSelections[id] || [];
+      }
+
+      function selectedConceptLabels(id) {
+        if (id) return selectedConcepts(id);
+        return conceptCategories.flatMap((category) => selectedConcepts(category.id));
+      }
+
+      function shapeClass(category) {
+        return `shape-${category.shape || "pill"}`;
+      }
+
+      function renderConceptBoard() {
+        $("conceptBoard").innerHTML = conceptCategories
+          .map((category) => {
+            const selected = new Set(selectedConcepts(category.id));
+            const buttons = category.options
+              .map((label) => {
+                const active = selected.has(label) ? " active" : "";
+                return `<button class="shape-option ${shapeClass(category)}${active}" type="button" data-concept-category="${category.id}" data-concept-value="${escapeHtml(label)}"><span>${escapeHtml(label)}</span></button>`;
+              })
+              .join("");
+            return `
+              <div class="concept-group">
+                <div class="concept-group-title">
+                  <span>${escapeHtml(category.title)}</span>
+                  <span>${escapeHtml(category.hint)}</span>
+                </div>
+                <div class="shape-cloud">${buttons}</div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function conceptLineFromSelections() {
+        const voice = selectedConceptLabels("voice").join(", ");
+        const temper = selectedConceptLabels("temper").join(", ");
+        const emotion = selectedConceptLabels("emotion").join(" + ");
+        const situation = selectedConceptLabels("situation").join(" / ");
+        const relationship = selectedConceptLabels("relationship").join(", ");
+        const sound = selectedConceptLabels("sound").join(", ");
+        const trend = selectedConceptLabels("trend").join(" + ");
+        const title = selectedConceptLabels("title").join(", ");
+        const parts = [];
+        if (voice || temper) parts.push(`${[voice, temper].filter(Boolean).join(", ")}의 화자`);
+        if (emotion) parts.push(`${emotion}을 말하는 곡`);
+        if (situation) parts.push(`장면은 ${situation}`);
+        if (relationship) parts.push(`대상은 ${relationship}`);
+        if (sound) parts.push(`사운드는 ${sound}`);
+        if (trend) parts.push(`문법은 ${trend}`);
+        if (title) parts.push(`제목은 ${title}`);
+        return parts.join(" · ");
+      }
+
+      function updateConceptSelectionText() {
+        const line = conceptLineFromSelections();
+        $("conceptSelectionText").textContent = line || "도형을 선택하면 한 줄 컨셉이 자동으로 만들어집니다.";
+        $("creatorProfileInput").value = [selectedConceptLabels("voice").join(", "), selectedConceptLabels("temper").join(", ")]
+          .filter(Boolean)
+          .join(" / ");
+      }
+
+      function toggleConcept(categoryId, value) {
+        const category = conceptCategory(categoryId);
+        if (!category) return;
+        const current = [...selectedConcepts(categoryId)];
+        const index = current.indexOf(value);
+        if (index >= 0) {
+          current.splice(index, 1);
+        } else if (category.max === 1) {
+          current.splice(0, current.length, value);
+        } else {
+          if (current.length >= category.max) current.shift();
+          current.push(value);
+        }
+        state.conceptSelections[categoryId] = current;
+        updateConceptSelectionText();
+        renderConceptBoard();
+        saveConceptState();
+        renderConceptHints();
+        buildRecipe();
+      }
+
+      function clearConceptSelections() {
+        state.conceptSelections = {};
+        $("conceptInput").value = "";
+        $("ideaInput").value = "";
+        updateConceptSelectionText();
+        renderConceptBoard();
+        saveConceptState();
+        renderConceptHints();
+        buildRecipe();
+      }
+
       function conceptState() {
         return {
           profile: $("creatorProfileInput").value.trim(),
           concept: $("conceptInput").value.trim(),
           idea: $("ideaInput").value.trim(),
+          selections: state.conceptSelections,
+          selectedLine: conceptLineFromSelections(),
         };
       }
 
@@ -1600,9 +1888,11 @@
       function restoreConceptState() {
         try {
           const saved = JSON.parse(localStorage.getItem(CONCEPT_KEY) || "{}");
-          $("creatorProfileInput").value = saved.profile || "";
+          state.conceptSelections = saved.selections || {};
           $("conceptInput").value = saved.concept || "";
           $("ideaInput").value = saved.idea || "";
+          updateConceptSelectionText();
+          renderConceptBoard();
         } catch {
           localStorage.removeItem(CONCEPT_KEY);
         }
@@ -1644,12 +1934,13 @@
       }
 
       function conceptHintsFor(songs) {
-        const { profile, concept, idea } = conceptState();
+        const { profile, concept, idea, selectedLine } = conceptState();
         const direction = conceptDirection(songs);
         const references = songs.slice(0, 3).map((song) => `${song.title} - ${song.artist}`).join(" / ");
         return [
-          `컨셉 질문: 이 곡의 주인공은 어떤 나이와 결을 가진 사람인가? ${profile ? `현재 입력: ${profile}` : "나이대와 성정을 먼저 적어 보세요."}`,
-          `한 줄 약속: ${concept || idea || "지금 꼭 하고 싶은 말을 한 문장으로 적어 보세요."}`,
+          `선택 조합: ${selectedLine || "도형을 눌러 화자, 감정, 상황, 사운드를 먼저 고르세요."}`,
+          `화자 질문: ${profile ? `${profile}의 사람은 어떤 말투로 말해야 가장 진짜인가?` : "화자/나이의 결과 성정을 먼저 고르세요."}`,
+          `한 줄 약속: ${concept || idea || selectedLine || "선택한 도형들이 자동으로 한 줄 컨셉이 됩니다."}`,
           `추천 방향: ${direction.lane}. ${direction.promise}`,
           `제목 감각: ${direction.titleShape}. 제목은 멋보다 기억을 우선합니다.`,
           `최신 경향: ${trendHints[0]} ${trendHints[3]}`,
@@ -1665,14 +1956,23 @@
       }
 
       function conceptBrief(songs) {
-        const { profile, concept, idea } = conceptState();
+        const { profile, concept, idea, selectedLine } = conceptState();
         const direction = conceptDirection(songs);
         const trendLine = trendHints.slice(0, 3).join(" ");
-        const seed = concept || idea || "직접 입력 전";
+        const seed = concept || selectedLine || idea || "선택 전";
+        const selectedGroups = conceptCategories
+          .map((category) => {
+            const labels = selectedConceptLabels(category.id);
+            return labels.length ? `  - ${category.title}: ${labels.join(" / ")}` : "";
+          })
+          .filter(Boolean)
+          .join("\n");
         return [
           "[컨셉 먼저]",
           `- 한 줄 컨셉: ${seed}`,
-          `- 화자 나이/성정: ${profile || "직접 입력 전. 숫자보다 말투, 체온, 겪어본 감각을 먼저 정하세요."}`,
+          `- 선택한 도형:`,
+          selectedGroups || "  - 아직 선택 전. 화자, 감정, 상황, 사운드부터 고르세요.",
+          `- 화자 나이/성정: ${profile || "선택 전. 숫자보다 말투, 체온, 겪어본 감각을 먼저 고르세요."}`,
           `- 추천 컨셉 레인: ${direction.lane}`,
           `- 곡의 약속: ${direction.promise}`,
           `- 제목 방향: ${direction.titleShape}`,
@@ -1878,6 +2178,13 @@
       }
 
       function wireEvents() {
+        $("conceptBoard").addEventListener("click", (event) => {
+          const button = event.target.closest("[data-concept-category]");
+          if (!button) return;
+          toggleConcept(button.dataset.conceptCategory, button.dataset.conceptValue);
+        });
+        $("clearConceptButton").addEventListener("click", clearConceptSelections);
+
         ["searchInput", "countryFilter", "genreFilter", "bpmFilter", "hookFilter", "confidenceFilter"].forEach((id) => {
           const eventName = id === "searchInput" ? "input" : "change";
           $(id).addEventListener(eventName, () => {
@@ -1918,7 +2225,7 @@
         $("randomButton").addEventListener("click", chooseRandom);
         $("recipeButton").addEventListener("click", buildRecipe);
         $("copyRecipeButton").addEventListener("click", copyRecipe);
-        ["creatorProfileInput", "conceptInput", "ideaInput"].forEach((id) => {
+        ["conceptInput", "ideaInput"].forEach((id) => {
           $(id).addEventListener("input", () => {
             saveConceptState();
             renderConceptHints();
@@ -1957,6 +2264,8 @@
       }
 
       fillStaticSelect("bpmFilter", bpmBuckets);
+      renderConceptBoard();
+      updateConceptSelectionText();
       wireEvents();
       refresh();
       setInterval(refresh, 5 * 60 * 1000);
