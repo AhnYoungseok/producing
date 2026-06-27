@@ -885,6 +885,7 @@
       .song-actions {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: 8px;
         margin-top: auto;
       }
@@ -2156,6 +2157,109 @@
         state.selected = state.selected.map(applyOne);
       }
 
+      function songByKey(key) {
+        return state.songs.find((song) => identity(song) === key) || state.filtered.find((song) => identity(song) === key);
+      }
+
+      function saveAnalysisDraft(key, draft) {
+        const current = state.analysisEdits[key] || {};
+        const merged = { ...current };
+        editableAnalysisFields.forEach((field) => {
+          if (!firstPresent(merged[field]) && firstPresent(draft[field])) {
+            merged[field] = String(draft[field]).trim();
+          }
+        });
+        state.analysisEdits[key] = cleanAnalysisValues(merged);
+        updateSongEverywhere(key, state.analysisEdits[key]);
+        saveAnalysisEdits();
+        renderSongs();
+        renderSelection();
+        renderConceptHints();
+        buildRecipe();
+      }
+
+      function autoDraftForSong(song) {
+        const body = normalize([song.genre, song.country, song.hook_type, song.hook_location, song.arrangement, song.vocal, song.mixing].join(" "));
+        const title = song.title || "제목";
+        const theme = song.lyric_theme || song.hit_factor || "핵심 감정";
+        const hookLocation = song.hook_location || "chorus";
+        const hookType = song.hook_type || "title phrase + melody hook";
+        const bpm = getBpm(song);
+        const inferred = inferredChordPlanForSong(song);
+        const isBallad = body.includes("ballad") || body.includes("piano") || body.includes("strings") || (bpm && bpm < 96);
+        const isDance = body.includes("dance") || body.includes("post-chorus") || body.includes("performance") || (bpm && bpm >= 118);
+        const isJazz = body.includes("jazz") || body.includes("swing") || body.includes("bossa");
+        const isRnb = body.includes("r&b") || body.includes("soul") || body.includes("groove");
+        const melodyContour = isDance
+          ? "짧은 2-4음 반복 뒤 포스트훅에서 같은 음형을 리듬으로 각인하는 구조"
+          : isJazz
+            ? "3도/7도 가이드톤을 중심으로 순차 진행하고, 마지막 음을 9도나 6도에 남기는 구조"
+            : isRnb
+              ? "낮은 음역 말하듯 시작해 3도권 멜리스마와 짧은 응답구로 후크를 만드는 구조"
+              : "낮은 벌스에서 순차 상행 후 코러스 첫 줄에서 3도 또는 5도로 열리는 구조";
+        const rhythmPattern = isDance
+          ? "4/4 킥 중심, 프리코러스에서 당김음을 늘리고 포스트훅은 2-4음절 리듬 반복"
+          : isJazz
+            ? "스윙/브러시 또는 보사노바 계열의 약한 싱코페이션, 보컬은 박 뒤에 살짝 놓는 방식"
+            : isRnb
+              ? "느슨한 backbeat와 보컬 앞박/뒤박 교차, 후크 단어는 짧게 끊고 마지막 음을 늘림"
+              : "느린 8비트 또는 하프타임 기반, 벌스는 말하듯 짧게, 코러스는 첫 박에 제목을 착지";
+        const accompaniment = isDance
+          ? "드럼/베이스/신스 모티프를 먼저 세우고, 코러스 뒤 포스트훅에서 사운드 로고를 반복하는 제작 방식"
+          : isJazz
+            ? "루트리스 피아노/기타 보이싱, 3도·7도·9도 중심 반주, 브러시/콘트라베이스 질감으로 공간을 만드는 방식"
+            : isRnb
+              ? "일렉피아노/패드/서브베이스를 얇게 깔고, 보컬 더블과 응답 애드립을 후렴 뒤에만 배치하는 방식"
+              : "피아노 또는 어쿠스틱 기타 분산화음으로 시작하고, 프리코러스 베이스 상승 뒤 마지막 후렴에서 스트링/드럼/더블링을 여는 방식";
+        return {
+          chorus_excerpt_source: "AI metadata draft; 원문은 직접 확인 필요",
+          chorus_excerpt_input_method: "structure-summary",
+          chorus_excerpt_permission_status: "structure-only",
+          chorus_excerpt_visibility: "analysis-only",
+          hook_lyric_confidence: "Low",
+          lyric_structure_summary: `${hookLocation}에서 ${title} 또는 핵심 정서를 직접 말하는 구조. 원문 가사 복제가 아니라 제목 위치와 문장 기능만 분석합니다.`,
+          repeated_phrase_summary: `${hookType} 계열: 짧은 제목/핵심 단어를 1-2마디 안에서 반복해 기억성을 만드는 방식`,
+          title_placement: `${hookLocation} 초입 또는 마지막 태그에 제목을 배치하는 방향`,
+          chorus_role_summary: `첫 줄은 ${theme}의 선언, 중간은 감정 압력, 마지막 줄은 결론/해소 역할로 설계`,
+          key: song.key || (isJazz ? "Eb major" : isDance ? "F major" : "C major"),
+          bpm: bpm ? String(bpm) : isDance ? "122" : isJazz ? "96" : "86",
+          mode: normalize(song.key).includes("minor") ? "minor" : "major",
+          harmonic_loop: firstPresent(song.harmonic_loop, song.chord_progression, inferred.progression),
+          harmonic_features: `${inferred.label}: ${inferred.reason}`,
+          chord_emotional_effect: isDance
+            ? "짧은 반복 루프가 신체 기억을 만들고, 프리코러스의 secondary dominant나 slash bass가 드롭 전 압력을 만듭니다."
+            : "반복 루프 안에서 전위, sus, add9, secondary dominant가 회상감과 해소감을 분리합니다.",
+          chord_creative_principles: "원곡 진행을 그대로 쓰지 말고 Roman numeral, 베이스 방향, 해상 위치, 텐션 색만 새 곡으로 일반화합니다.",
+          chord_source: "AI heuristic from metadata; user verification needed",
+          chord_confidence: firstPresent(song.chord_progression, song.harmonic_loop) ? "Medium" : "Low",
+          hook_melodic_contour: melodyContour,
+          melody_interval_summary: isJazz ? "3도/7도 가이드톤, 9도 착지" : isDance ? "2-4음 반복, 5도 이내 짧은 도약" : "순차 상행 + 3도/5도 개방",
+          melody_rhythm_summary: isDance ? "짧은 음절 반복 + 포스트훅 리듬 고정" : "짧은 앞박 뒤 긴 마지막 음으로 제목을 남김",
+          hook_melody_source: "AI heuristic from metadata; melody verification needed",
+          hook_melody_confidence: "Low",
+          rhythm_pattern_summary: rhythmPattern,
+          groove_meter: isJazz ? "4/4 swing or bossa feel" : isDance ? "4/4 dance/pop groove" : "4/4 ballad or soft-pop half-time",
+          rhythmic_hook_summary: isDance ? "포스트훅에서 2-4음절 리듬 반복" : "코러스 첫 줄의 말맛과 마지막 장음이 리듬 후크",
+          syncopation_summary: isDance || isRnb ? "프리코러스와 포스트훅에 당김음/앞박을 배치" : "벌스는 박 뒤, 코러스 제목은 첫 박에 착지",
+          rhythm_source: "AI heuristic from BPM/genre/hook metadata",
+          rhythm_confidence: "Low",
+          accompaniment_pattern: accompaniment,
+          instrumentation_summary: firstPresent(song.arrangement, isJazz ? "piano/guitar, bass, brushed drums" : isDance ? "drums, bass/synth motif, hook lead" : "piano, acoustic guitar, strings, restrained drums"),
+          production_method_summary: accompaniment,
+          arrangement_build: firstPresent(song.arrangement_build, "Intro 얇게 / Verse 절제 / Pre 상승 / Chorus 확장 / Final chorus 더블링"),
+          production_texture_summary: firstPresent(song.mixing, isDance ? "tight low end, wide hook, dry rhythmic vocal" : "front vocal, warm reverb, controlled low end"),
+          accompaniment_source: "AI heuristic from arrangement/genre metadata",
+          accompaniment_confidence: "Low",
+        };
+      }
+
+      function autoAnalyzeSong(key) {
+        const song = songByKey(key);
+        if (!song) return;
+        saveAnalysisDraft(key, autoDraftForSong(song));
+        setStatus("AI 5축 분석 초안 생성됨 - 원문/악보 확인 필요");
+      }
+
       function saveSongAnalysis(form) {
         const key = form.dataset.analysisForm;
         if (!key) return;
@@ -2672,6 +2776,7 @@
                 </details>
                 <div class="song-actions">
                   <button type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "담김" : "참고 추가"}</button>
+                  <button class="secondary" type="button" data-auto-analysis="${escapeHtml(key)}">AI 5축 분석 초안</button>
                   <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 검색</a>
                 </div>
               </article>
@@ -2712,6 +2817,7 @@
 
       function hookLyricInfo(song) {
         const excerpt = firstPresent(song.hook_lyric_excerpt, song.chorus_excerpt);
+        const explicitStructure = firstPresent(song.lyric_structure_summary, song.repeated_phrase_summary, song.title_placement, song.chorus_role_summary);
         const structureSummary = firstPresent(
           song.lyric_structure_summary,
           song.lyric_theme,
@@ -2721,6 +2827,7 @@
         return {
           excerpt,
           hasExcerpt: Boolean(excerpt),
+          hasAnalysis: Boolean(excerpt || explicitStructure),
           source: firstPresent(song.chorus_excerpt_source, excerpt ? "사용자 입력 또는 수동 확인" : "후렴구 원문 입력 필요"),
           inputMethod: firstPresent(song.chorus_excerpt_input_method, excerpt ? "manual-input" : "needs-review"),
           permission: firstPresent(song.chorus_excerpt_permission_status, excerpt ? "needs-review" : "unavailable"),
@@ -2786,7 +2893,7 @@
         const rhythm = rhythmInfo(song);
         const accompaniment = accompanimentInfo(song);
         const missing = [
-          lyric.hasExcerpt ? "" : "가사 후크 입력 필요",
+          lyric.hasAnalysis ? "" : "가사/후렴 구조 분석 필요",
           chord.hasRaw ? "" : "코드진행 분석 필요",
           melody.hasMelody ? "" : "후크 멜로디 분석 필요",
           rhythm.hasRhythm ? "" : "리듬 분석 필요",
@@ -2801,7 +2908,7 @@
         const pills = status.complete
           ? `<span class="status-pill good">분석 완료</span>`
           : status.missing.map((item) => `<span class="status-pill need">${escapeHtml(item)}</span>`).join("");
-        const lyricClass = lyric.hasExcerpt ? "" : " missing";
+        const lyricClass = lyric.hasAnalysis ? "" : " missing";
         const chordClass = chord.hasRaw ? "" : " missing";
         const melodyClass = melody.hasMelody ? "" : " missing";
         const rhythmClass = rhythm.hasRhythm ? "" : " missing";
@@ -2811,7 +2918,7 @@
             <div class="analysis-status">${pills}</div>
             <div class="analysis-core">
               <div class="analysis-core-title">후렴구/후크 가사</div>
-              <div class="analysis-core-value${lyricClass}">${escapeHtml(lyric.excerpt || "후렴구 입력 필요")}</div>
+              <div class="analysis-core-value${lyricClass}">${escapeHtml(lyric.excerpt || (lyric.hasAnalysis ? "원문 미표시: 구조 요약 기반 분석" : "후렴구 입력 필요"))}</div>
               <div class="analysis-note">출처 ${escapeHtml(lyric.source)} · 입력 ${escapeHtml(lyric.inputMethod)} · 권한 ${escapeHtml(lyric.permission)} · 표시 ${escapeHtml(lyric.visibility)} · 신뢰도 ${escapeHtml(lyric.confidence)}</div>
               <div class="analysis-note">${escapeHtml(lyric.structureSummary)} / ${escapeHtml(lyric.titlePlacement)}</div>
             </div>
@@ -2916,6 +3023,7 @@
             </div>
             <div class="song-actions">
               <button type="submit">분석 저장</button>
+              <button class="secondary" type="button" data-auto-analysis="${escapeHtml(key)}">AI 5축 분석 초안</button>
               <button class="secondary" type="button" data-clear-analysis="${escapeHtml(key)}">로컬 분석 삭제</button>
             </div>
           </form>
@@ -3233,7 +3341,7 @@
         const avg = bpms.length ? Math.round(bpms.reduce((sum, bpm) => sum + bpm, 0) / bpms.length) : null;
         const range = bpms.length ? `${Math.min(...bpms)}-${Math.max(...bpms)}` : "미확정";
         const chordCount = songs.filter((song) => songChordAnalysis(song).hasRaw).length;
-        const lyricHookCount = songs.filter((song) => hookLyricInfo(song).hasExcerpt).length;
+        const lyricHookCount = songs.filter((song) => hookLyricInfo(song).hasAnalysis).length;
         const melodyHookCount = songs.filter((song) => hookMelodyInfo(song).hasMelody).length;
         const rhythmCount = songs.filter((song) => rhythmInfo(song).hasRhythm).length;
         const accompanimentCount = songs.filter((song) => accompanimentInfo(song).hasAccompaniment).length;
@@ -3752,7 +3860,7 @@
             const status = analysisStatus(song);
             return [
               `  ${index + 1}. ${song.title} - ${song.artist}`,
-              `     - 후렴/후크 가사: ${lyric.excerpt || "후렴구 입력 필요"}`,
+              `     - 후렴/후크 가사: ${lyric.excerpt || (lyric.hasAnalysis ? "원문 미표시: 구조 요약 기반 분석" : "후렴구 입력 필요")}`,
               `     - 출처/입력/권한/표시: ${lyric.source} / ${lyric.inputMethod} / ${lyric.permission} / ${lyric.visibility}`,
               `     - 가사 구조: ${lyric.structureSummary}; 반복 ${lyric.repeatedPhrase}; 제목 ${lyric.titlePlacement}; 역할 ${lyric.chorusRole}`,
               `     - 후크 멜로디: ${melody.contour || "후크 멜로디 분석 필요"}; 음정 ${melody.interval}; 리듬 ${melody.rhythm}`,
@@ -4804,6 +4912,11 @@
           const clearButton = event.target.closest("[data-clear-analysis]");
           if (clearButton) {
             clearSongAnalysis(clearButton.dataset.clearAnalysis);
+            return;
+          }
+          const autoButton = event.target.closest("[data-auto-analysis]");
+          if (autoButton) {
+            autoAnalyzeSong(autoButton.dataset.autoAnalysis);
             return;
           }
           const button = event.target.closest("[data-add]");

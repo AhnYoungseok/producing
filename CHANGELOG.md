@@ -12,6 +12,7 @@
 
 ### Added
 
+- Added an `AI 5-axis analysis draft` action to public reference cards, filling missing lyric-structure, melody, rhythm/groove, chord, and accompaniment/production analysis fields from available metadata while preserving user-entered values.
 - Added public-site reference-song analysis panels for the three required core fields: chorus/hook lyric excerpt, chord progression analysis, and hook melody analysis.
 - Added local public-site editing for chorus/hook excerpts, lyric source/input/permission/visibility/confidence metadata, section chord progressions, Roman numeral conversion, harmonic interpretation, and hook melody summaries.
 - Expanded the public-site required analysis model from 3 fields to 5 creative axes: lyrics, melody, rhythm/groove, chord progression, and accompaniment/production method.
@@ -24,6 +25,7 @@
 
 ### Changed
 
+- Changed lyric analysis completion so structure-only analysis can count as analyzed while still showing that the original chorus/hook text must be manually verified before any excerpt is displayed.
 - Upgraded the public-site concept finder from a single coarse persona label into an 8-axis visual persona model with detailed subtype codes, coordinate map, score bars, rationale notes, and nearest archetype ranking.
 - Strengthened source-safe harmony, melody, and hook analyzers so user-provided chords/lyrics produce detailed section functions, tension/release notes, reharmonization options, hook design, melody contour/rhythm summaries, and explicit confidence/source labels without using YouTube audio extraction.
 - Updated Hook Lab so it loads reference summaries through one bulk API call instead of relying on per-song analysis requests.
