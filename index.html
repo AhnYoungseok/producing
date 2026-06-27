@@ -503,7 +503,9 @@
     </main>
 
     <script>
-      const LEDGER_URL =
+      const LEDGER_API_URL =
+        "https://api.github.com/repos/AhnYoungseok/producing/contents/cloud_ledger/song_library.json?ref=main";
+      const LEDGER_RAW_URL =
         "https://raw.githubusercontent.com/AhnYoungseok/producing/main/cloud_ledger/song_library.json";
 
       const state = {
@@ -541,13 +543,30 @@
 
       async function loadLedger() {
         setStatus("데이터 불러오는 중");
-        const response = await fetch(`${LEDGER_URL}?cache=${Date.now()}`, {
+        const apiResponse = await fetch(`${LEDGER_API_URL}&cache=${Date.now()}`, {
+          cache: "no-store",
+          headers: { Accept: "application/vnd.github+json" },
+        });
+        if (apiResponse.ok) {
+          const payload = await apiResponse.json();
+          if (payload.content) {
+            return JSON.parse(decodeBase64Utf8(payload.content));
+          }
+        }
+
+        const rawResponse = await fetch(`${LEDGER_RAW_URL}?cache=${Date.now()}`, {
           cache: "no-store",
         });
-        if (!response.ok) {
-          throw new Error(`원장 응답 오류: ${response.status}`);
+        if (!rawResponse.ok) {
+          throw new Error(`원장 응답 오류: ${rawResponse.status}`);
         }
-        return response.json();
+        return rawResponse.json();
+      }
+
+      function decodeBase64Utf8(value) {
+        const binary = atob(value.replace(/\s/g, ""));
+        const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+        return new TextDecoder("utf-8").decode(bytes);
       }
 
       function sortSongs(songs) {
