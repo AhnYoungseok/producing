@@ -1472,9 +1472,13 @@
         conceptSelections: {},
         axisOverrides: {},
         analysisEdits: {},
+        conceptWorkTimer: 0,
+        conceptCache: new Map(),
         activePreset: "hit",
         renderLimit: 80,
       };
+
+      const songSearchTextCache = new WeakMap();
 
       const editableAnalysisFields = [
         "chorus_excerpt",
@@ -2164,6 +2168,7 @@
         state.songs = state.songs.map(applyOne);
         state.filtered = state.filtered.map(applyOne);
         state.selected = state.selected.map(applyOne);
+        clearConceptCache();
       }
 
       function songByKey(key) {
@@ -3291,9 +3296,16 @@
           .filter((term) => term && term.length >= 2);
       }
 
-      function conceptSongScore(song, archetype = resolveArchetype()) {
-        const body = normalize(`${textOf(song)} ${song.chart_source} ${song.source_type}`);
-        const terms = conceptSearchTerms(archetype);
+      function searchableSongText(song) {
+        const cached = songSearchTextCache.get(song);
+        if (cached) return cached;
+        const value = normalize(`${textOf(song)} ${song.chart_source} ${song.source_type}`);
+        songSearchTextCache.set(song, value);
+        return value;
+      }
+
+      function conceptSongScore(song, archetype = resolveArchetype(), terms = conceptSearchTerms(archetype)) {
+        const body = searchableSongText(song);
         const genre = normalize(song.genre);
         const country = normalize(song.country);
         const confidence = normalize(song.data_confidence);
@@ -3316,6 +3328,21 @@
         return score;
       }
 
+      function conceptCacheKey(limit) {
+        return JSON.stringify({
+          limit,
+          updated: state.ledger?.updated_at || "",
+          count: state.songs.length,
+          seed: conceptSeedText(),
+          selections: state.conceptSelections,
+          axes: state.axisOverrides,
+        });
+      }
+
+      function clearConceptCache() {
+        state.conceptCache.clear();
+      }
+
       function mergeUniqueSongs(songs) {
         const seen = new Set();
         const merged = [];
@@ -3329,12 +3356,31 @@
       }
 
       function conceptReferenceSongs(limit = 20) {
+        const key = conceptCacheKey(limit);
+        const cached = state.conceptCache.get(key);
+        if (cached) return cached;
         const source = state.songs.length ? state.songs : state.filtered;
         const archetype = resolveArchetype();
-        const scored = source
-          .map((song) => ({ song, score: conceptSongScore(song, archetype) }))
-          .sort((a, b) => b.score - a.score || hitScore(b.song) - hitScore(a.song));
-        return mergeUniqueSongs(scored.map((item) => item.song)).slice(0, limit);
+        const terms = conceptSearchTerms(archetype);
+        const topSize = Math.max(limit * 4, 80);
+        const top = [];
+        source.forEach((song) => {
+          const score = conceptSongScore(song, archetype, terms);
+          if (top.length < topSize) {
+            top.push({ song, score });
+            return;
+          }
+          let minIndex = 0;
+          for (let index = 1; index < top.length; index += 1) {
+            if (top[index].score < top[minIndex].score) minIndex = index;
+          }
+          if (score > top[minIndex].score) top[minIndex] = { song, score };
+        });
+        top.sort((a, b) => b.score - a.score || hitScore(b.song) - hitScore(a.song));
+        const result = mergeUniqueSongs(top.map((item) => item.song)).slice(0, limit);
+        state.conceptCache.set(key, result);
+        if (state.conceptCache.size > 20) state.conceptCache.delete(state.conceptCache.keys().next().value);
+        return result;
       }
 
       function referenceSongsForBrief() {
@@ -3928,6 +3974,13 @@
           .join("");
       }
 
+      function syncConceptButtonStates(categoryId) {
+        const selected = new Set(selectedConcepts(categoryId));
+        document.querySelectorAll(`[data-concept-category="${categoryId}"]`).forEach((button) => {
+          button.classList.toggle("active", selected.has(button.dataset.conceptValue));
+        });
+      }
+
       function conceptLineFromSelections() {
         const voice = selectedConceptLabels("voice").join(", ");
         const temper = selectedConceptLabels("temper").join(", ");
@@ -4035,6 +4088,16 @@
         renderArchetypePanel();
       }
 
+      function scheduleConceptOutputs(delay = 140) {
+        window.clearTimeout(state.conceptWorkTimer);
+        state.conceptWorkTimer = window.setTimeout(() => {
+          state.conceptWorkTimer = 0;
+          buildRecipe();
+          saveConceptState();
+          setStatus("컨셉 반영됨");
+        }, delay);
+      }
+
       function toggleConcept(categoryId, value) {
         const category = conceptCategory(categoryId);
         if (!category) return;
@@ -4050,10 +4113,9 @@
         }
         state.conceptSelections[categoryId] = current;
         updateConceptSelectionText();
-        renderConceptBoard();
+        syncConceptButtonStates(categoryId);
         saveConceptState();
-        renderConceptHints();
-        buildRecipe();
+        scheduleConceptOutputs();
       }
 
       function clearConceptSelections() {
@@ -4064,8 +4126,7 @@
         updateConceptSelectionText();
         renderConceptBoard();
         saveConceptState();
-        renderConceptHints();
-        buildRecipe();
+        scheduleConceptOutputs(0);
       }
 
       function conceptState() {
@@ -4840,8 +4901,7 @@
 
       function refreshAxisDrivenOutputs() {
         updateConceptSelectionText();
-        renderConceptHints();
-        buildRecipe();
+        scheduleConceptOutputs();
       }
 
       function scheduleAxisDrivenOutputs() {
@@ -4849,7 +4909,6 @@
         state.axisFrame = requestAnimationFrame(() => {
           state.axisFrame = 0;
           refreshAxisDrivenOutputs();
-          saveConceptState();
         });
       }
 
@@ -4961,8 +5020,7 @@
         ["conceptInput", "ideaInput"].forEach((id) => {
           $(id).addEventListener("input", () => {
             saveConceptState();
-            renderConceptHints();
-            buildRecipe();
+            scheduleConceptOutputs(220);
           });
         });
         $("loadMoreButton").addEventListener("click", () => {
@@ -4977,6 +5035,7 @@
           state.ledger = ledger;
           loadAnalysisEdits();
           state.songs = sortSongs(applyAnalysisEdits(ledger.songs || []));
+          clearConceptCache();
           fillSelect("countryFilter", uniqueOptions(state.songs, "country"), "전체 국가");
           fillSelect("genreFilter", uniqueOptions(state.songs, "genre"), "전체 장르");
           fillSelect("hookFilter", uniqueOptions(state.songs, "hook_type"), "전체 후크");
