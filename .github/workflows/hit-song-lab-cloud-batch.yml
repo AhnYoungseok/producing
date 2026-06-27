@@ -6,6 +6,7 @@ on:
       - ".github/workflows/hit-song-lab-cloud-batch.yml"
       - "backend/scripts/cloud_hit_song_batch.py"
       - "backend/seeds/cloud_reference_queue.json"
+      - "backend/seeds/cloud_reference_fallback_hits.json"
       - "backend/requirements-cloud.txt"
   schedule:
     - cron: "*/10 * * * *"

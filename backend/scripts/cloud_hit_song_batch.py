@@ -16,6 +16,7 @@ SPREADSHEET_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 DEFAULT_SHEET_ID = "1U_WUMnel9AZv-7YymqMRMDw5iX_MI-M3r2Yw0e7umNs"
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUEUE_PATH = ROOT_DIR / "backend" / "seeds" / "cloud_reference_queue.json"
+FALLBACK_QUEUE_PATH = ROOT_DIR / "backend" / "seeds" / "cloud_reference_fallback_hits.json"
 LEDGER_PATH = ROOT_DIR / "cloud_ledger" / "song_library.json"
 
 
@@ -28,7 +29,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    queue = _load_queue()
+    queue = _load_candidate_pool()
     ledger_path = Path(args.ledger_path)
     ledger = _load_ledger(ledger_path)
     ledger_records = ledger.get("songs", [])
@@ -167,8 +168,11 @@ def _has_google_credentials() -> bool:
     return bool(os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON") or os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE"))
 
 
-def _load_queue() -> list[dict[str, Any]]:
-    return json.loads(QUEUE_PATH.read_text(encoding="utf-8"))
+def _load_candidate_pool() -> list[dict[str, Any]]:
+    queue = json.loads(QUEUE_PATH.read_text(encoding="utf-8"))
+    if FALLBACK_QUEUE_PATH.exists():
+        queue.extend(json.loads(FALLBACK_QUEUE_PATH.read_text(encoding="utf-8")))
+    return queue
 
 
 def _load_ledger(path: Path) -> dict[str, Any]:

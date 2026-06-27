@@ -14,7 +14,13 @@ GitHub Actions already writes `cloud_ledger/song_library.json`. The GitHub Pages
 
 ## 1. Always-On Browser Dashboard
 
-Primary URL:
+Zero-settings URL that works without enabling GitHub Pages:
+
+```text
+https://cdn.jsdelivr.net/gh/AhnYoungseok/producing@main/public-site/index.html
+```
+
+GitHub Pages URL after Pages is enabled:
 
 ```text
 https://ahnyoungseok.github.io/producing/
@@ -30,13 +36,13 @@ It shows:
 - added date beside each song
 - genre, hook, and BPM summary charts
 
-If the URL does not open after the first push, enable GitHub Pages once:
+If the GitHub Pages URL does not open after the first push, enable GitHub Pages once:
 
 ```text
 Repository Settings > Pages > Source: GitHub Actions
 ```
 
-After that, no local PC process is required for the browser dashboard.
+The jsDelivr URL above does not require that setting. After either URL is available, no local PC process is required for the browser dashboard.
 
 ## 2. Google Sheet Secrets
 
@@ -113,6 +119,12 @@ Always-on GitHub Pages viewer:
 
 ```text
 https://ahnyoungseok.github.io/producing/
+```
+
+Zero-settings GitHub CDN viewer:
+
+```text
+https://cdn.jsdelivr.net/gh/AhnYoungseok/producing@main/public-site/index.html
 ```
 
 Backend health:
