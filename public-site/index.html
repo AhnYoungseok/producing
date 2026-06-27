@@ -780,6 +780,9 @@
         `https://api.github.com/repos/${REPO}/contents/cloud_ledger/song_library.json?ref=main`;
       const LEDGER_RAW_URL =
         `https://raw.githubusercontent.com/${REPO}/main/cloud_ledger/song_library.json`;
+      const LEDGER_CDN_URL =
+        `https://cdn.jsdelivr.net/gh/${REPO}@main/cloud_ledger/song_library.json`;
+      const MIN_LEDGER_TOTAL = 18144;
       const SELECTION_KEY = "hit-song-lab-selected-v2";
 
       const state = {
@@ -864,15 +867,21 @@
         return new TextDecoder("utf-8").decode(bytes);
       }
 
-      async function loadLedger() {
-        setStatus("GitHub 데이터 읽는 중");
-        const rawResponse = await fetch(`${LEDGER_RAW_URL}?cache=${Date.now()}`, {
+      function ledgerTotal(ledger) {
+        const baselineCount = Number(ledger.baseline?.count || 0);
+        return Number(ledger.total_after_baseline || baselineCount + (ledger.songs || []).length);
+      }
+
+      async function fetchLedgerJson(url) {
+        const separator = url.includes("?") ? "&" : "?";
+        const response = await fetch(`${url}${separator}cache=${Date.now()}`, {
           cache: "no-store",
         });
-        if (rawResponse.ok) {
-          return rawResponse.json();
-        }
+        if (!response.ok) throw new Error(`${url} returned ${response.status}`);
+        return response.json();
+      }
 
+      async function fetchApiLedgerJson() {
         const apiResponse = await fetch(`${LEDGER_API_URL}&cache=${Date.now()}`, {
           cache: "no-store",
           headers: { Accept: "application/vnd.github+json" },
@@ -883,8 +892,28 @@
             return JSON.parse(decodeBase64Utf8(payload.content));
           }
         }
+        throw new Error(`GitHub API returned ${apiResponse.status}`);
+      }
 
-        throw new Error(`데이터 응답 오류: raw ${rawResponse.status}, api ${apiResponse.status}`);
+      async function loadLedger() {
+        setStatus("GitHub 데이터 읽는 중");
+        const loaders = [
+          () => fetchLedgerJson(LEDGER_RAW_URL),
+          () => fetchLedgerJson(LEDGER_CDN_URL),
+          fetchApiLedgerJson,
+        ];
+        const errors = [];
+        for (const load of loaders) {
+          try {
+            const ledger = await load();
+            const total = ledgerTotal(ledger);
+            if (total >= MIN_LEDGER_TOTAL) return ledger;
+            errors.push(`stale total ${total}`);
+          } catch (error) {
+            errors.push(error.message);
+          }
+        }
+        throw new Error(`데이터 응답 오류: ${errors.join(" / ")}`);
       }
 
       function sortSongs(songs) {
