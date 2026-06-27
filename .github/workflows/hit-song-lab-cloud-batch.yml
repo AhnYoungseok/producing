@@ -6,6 +6,7 @@ on:
       - ".github/workflows/hit-song-lab-cloud-batch.yml"
       - "backend/scripts/cloud_hit_song_batch.py"
       - "backend/scripts/backfill_billboard_hot100.py"
+      - "backend/scripts/backfill_korean_melon.py"
       - "backend/seeds/cloud_reference_queue.json"
       - "backend/seeds/cloud_reference_fallback_hits.json"
       - "backend/requirements-cloud.txt"
@@ -15,6 +16,10 @@ on:
     inputs:
       target_total:
         description: "Optional one-time target total_after_baseline for Billboard Hot 100 backfill"
+        required: false
+        default: ""
+      korean_add_count:
+        description: "Optional one-time Korean Melon monthly-chart rows to add"
         required: false
         default: ""
 
@@ -48,8 +53,11 @@ jobs:
       - name: Add unique reference songs to cloud ledger
         env:
           BACKFILL_TARGET_TOTAL: ${{ github.event.inputs.target_total }}
+          KOREAN_ADD_COUNT: ${{ github.event.inputs.korean_add_count }}
         run: |
-          if [ -n "$BACKFILL_TARGET_TOTAL" ]; then
+          if [ -n "$KOREAN_ADD_COUNT" ]; then
+            python backend/scripts/backfill_korean_melon.py --add-count "$KOREAN_ADD_COUNT"
+          elif [ -n "$BACKFILL_TARGET_TOTAL" ]; then
             python backend/scripts/backfill_billboard_hot100.py --target-total "$BACKFILL_TARGET_TOTAL"
           else
             python backend/scripts/cloud_hit_song_batch.py --batch-size 10 || python -c 'import json, subprocess; from pathlib import Path; ledger=json.loads(Path("cloud_ledger/song_library.json").read_text(encoding="utf-8")); target=int(ledger.get("total_after_baseline") or 0)+10; subprocess.check_call(["python", "backend/scripts/backfill_billboard_hot100.py", "--target-total", str(target)])'

@@ -802,6 +802,7 @@
 
       const presets = [
         { id: "latest", label: "최신 추가" },
+        { id: "kr", label: "한국곡" },
         { id: "lyrical", label: "서정 팝/발라드" },
         { id: "us", label: "US 싱글 차트형" },
         { id: "kpop", label: "K-pop 글로벌형" },
@@ -976,6 +977,7 @@
         const bpm = getBpm(song);
 
         if (preset === "us") return country === "us" || body.includes("billboard") || body.includes("hot 100");
+        if (preset === "kr") return country === "kr" || country.includes("korea") || genre.includes("korean");
         if (preset === "kpop") return country.includes("korea") || country === "kr" || genre.includes("k pop") || genre.includes("kpop");
         if (preset === "lyrical") return genre.includes("ballad") || genre.includes("soft") || genre.includes("lyrical") || lyricTheme.includes("longing") || lyricTheme.includes("regret") || lyricTheme.includes("healing") || lyricTheme.includes("intimate");
         if (preset === "dance") return genre.includes("dance") || (bpm && bpm >= 118);
