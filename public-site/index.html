@@ -1140,6 +1140,13 @@
         border-bottom: 1px solid var(--line);
       }
 
+      .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+      }
+
       .recipe-title {
         font-size: 13px;
         font-weight: 900;
@@ -1291,7 +1298,6 @@
         <section class="panel composer-panel">
           <div class="panel-head">
             <h2>조합하기 · 창작 브리프</h2>
-            <button id="clearSelectionButton" class="ghost" type="button">비우기</button>
           </div>
           <div class="composer-body">
             <div class="concept-lab">
@@ -1301,12 +1307,12 @@
                   <h3 class="concept-title">말투, 시점, 지금 하고 싶은 말을 먼저 잡습니다.</h3>
                 </div>
                 <div class="concept-note">최신 차트 감각 + 입체적인 태도 + 히트곡 데이터</div>
+                <button id="clearConceptButton" class="ghost" type="button">컨셉 초기화</button>
               </div>
               <div id="conceptBoard" class="concept-board"></div>
               <div class="concept-selection">
                 <div class="concept-selection-top">
                   <div class="concept-selection-title">선택한 컨셉 조합</div>
-                  <button id="clearConceptButton" class="ghost" type="button">컨셉 비우기</button>
                 </div>
                 <div id="conceptSelectionText" class="concept-selection-text">도형을 선택하면 한 줄 컨셉이 자동으로 만들어집니다.</div>
               </div>
@@ -1331,7 +1337,10 @@
             <div class="recipe">
               <div class="recipe-head">
                 <div class="recipe-title">창작 브리프</div>
-                <button id="copyRecipeButton" class="ghost" type="button">복사</button>
+                <div class="header-actions">
+                  <button id="clearSelectionButton" class="ghost" type="button">브리프 초기화</button>
+                  <button id="copyRecipeButton" class="ghost" type="button">복사</button>
+                </div>
               </div>
               <div id="recipeBody" class="recipe-body">참고곡을 2곡 이상 담으면 조합 브리프를 만들 수 있습니다.</div>
             </div>

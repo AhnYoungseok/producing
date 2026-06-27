@@ -25,6 +25,7 @@
 
 ### Changed
 
+- Moved the concept reset button to the top of the concept section and the brief reset button to the top of the creation brief section.
 - Updated the public-site concept label to the softer `감성 / 말투`.
 - Changed lyric analysis completion so structure-only analysis can count as analyzed while still showing that the original chorus/hook text must be manually verified before any excerpt is displayed.
 - Upgraded the public-site concept finder from a single coarse persona label into an 8-axis visual persona model with detailed subtype codes, coordinate map, score bars, rationale notes, and nearest archetype ranking.
