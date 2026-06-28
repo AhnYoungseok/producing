@@ -12,6 +12,7 @@
 
 ### Added
 
+- Added public-site visual graph panels for concept radar, current reference-library distributions, and selected-reference combination analysis so concept, genre, BPM, year, confidence, key, hook, and risk signals are visible at a glance.
 - Added public-site automatic chorus/hook candidate panels for each reference card, showing likely chorus windows, hook strength, lyric-structure hints, melody/rhythm cues, chord hints, creative-use notes, and confidence without storing full lyrics or extracting YouTube audio.
 - Added public-site selected-reference combination analysis with average BPM, common key, common chord family, hook type, mood, arrangement signals, conflict notes, and arrangement risk before generating the brief.
 - Added mood-coordinate recommendations to the public-site concept graph, mapping dark/bright and calm/intense drag values into BPM, key, chord color, hook style, arrangement, and brief tone.

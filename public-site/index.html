@@ -1172,6 +1172,121 @@
         background: linear-gradient(90deg, var(--teal), var(--blue));
       }
 
+      .visual-graph-panel {
+        display: grid;
+        gap: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fbfdff;
+      }
+
+      .visual-graph-title {
+        color: var(--teal-dark);
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .visual-graph-subtitle {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.4;
+      }
+
+      .graph-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .graph-card {
+        display: grid;
+        gap: 7px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px;
+        background: #fff;
+      }
+
+      .graph-card-title {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 950;
+        text-transform: uppercase;
+      }
+
+      .bar-row {
+        display: grid;
+        grid-template-columns: minmax(62px, 0.55fr) minmax(0, 1fr) 36px;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+        font-weight: 850;
+        color: var(--muted);
+      }
+
+      .bar-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .bar-track {
+        height: 9px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e5edf5;
+      }
+
+      .bar-fill {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--teal), #60a5fa);
+      }
+
+      .bar-value {
+        color: var(--ink);
+        text-align: right;
+      }
+
+      .radar-wrap {
+        display: grid;
+        grid-template-columns: 190px minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+      }
+
+      .radar-chart {
+        width: 100%;
+        max-width: 190px;
+        aspect-ratio: 1;
+      }
+
+      .radar-ring {
+        fill: none;
+        stroke: #dbe6ef;
+        stroke-width: 1;
+      }
+
+      .radar-axis {
+        stroke: #dbe6ef;
+        stroke-width: 1;
+      }
+
+      .radar-shape {
+        fill: rgba(15, 118, 110, 0.2);
+        stroke: var(--teal);
+        stroke-width: 2;
+      }
+
+      .radar-dot {
+        fill: var(--teal-dark);
+        stroke: #fff;
+        stroke-width: 2;
+      }
+
       .analysis-edit-form {
         display: grid;
         gap: 10px;
@@ -1505,8 +1620,14 @@
         .persona-grid,
         .candidate-grid,
         .insight-grid,
-        .mood-recommendation-grid {
+        .mood-recommendation-grid,
+        .graph-grid,
+        .radar-wrap {
           grid-template-columns: 1fr;
+        }
+
+        .radar-chart {
+          justify-self: center;
         }
 
         .concept-head {
@@ -1671,6 +1792,8 @@
               <div id="summaryGenre" class="summary-value">-</div>
             </div>
           </div>
+
+          <div id="referenceGraph" class="visual-graph-panel" aria-label="참고곡 그래프"></div>
 
           <div id="songGrid" class="song-grid"></div>
           <div class="load-more">
@@ -2920,6 +3043,76 @@
           .slice(0, limit);
       }
 
+      function percent(value, total) {
+        if (!total) return 0;
+        return Math.max(3, Math.round((Number(value || 0) / total) * 100));
+      }
+
+      function graphRows(entries, total = null) {
+        const max = Math.max(1, ...(entries || []).map((entry) => Number(entry[1] || 0)));
+        return (entries || [])
+          .map(([label, count]) => {
+            const width = total ? percent(count, total) : percent(count, max);
+            return `
+              <div class="bar-row">
+                <span class="bar-label" title="${escapeHtml(label)}">${escapeHtml(label)}</span>
+                <span class="bar-track" aria-hidden="true"><span class="bar-fill" style="width:${width}%"></span></span>
+                <span class="bar-value">${escapeHtml(number(count))}</span>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function graphCard(title, entries, total = null, empty = "데이터 없음") {
+        return `
+          <div class="graph-card">
+            <div class="graph-card-title">${escapeHtml(title)}</div>
+            ${entries && entries.length ? graphRows(entries, total) : `<div class="analysis-note">${escapeHtml(empty)}</div>`}
+          </div>
+        `;
+      }
+
+      function bpmBucketEntries(songs) {
+        const buckets = [
+          ["느림", (bpm) => bpm && bpm < 90],
+          ["90-110", (bpm) => bpm && bpm >= 90 && bpm <= 110],
+          ["111-124", (bpm) => bpm && bpm >= 111 && bpm <= 124],
+          ["댄스", (bpm) => bpm && bpm >= 125],
+          ["미입력", (bpm) => !bpm],
+        ];
+        return buckets.map(([label, test]) => [label, songs.filter((song) => test(getBpm(song))).length]).filter(([, count]) => count);
+      }
+
+      function yearBucketEntries(songs) {
+        const buckets = new Map();
+        songs.forEach((song) => {
+          const year = yearValue(song);
+          const label = year ? `${Math.floor(year / 10) * 10}s` : "연도 미입력";
+          buckets.set(label, (buckets.get(label) || 0) + 1);
+        });
+        return [...buckets.entries()].sort((a, b) => String(b[0]).localeCompare(String(a[0]), "ko")).slice(0, 5);
+      }
+
+      function renderReferenceGraph() {
+        const target = $("referenceGraph");
+        if (!target) return;
+        const songs = state.filtered || [];
+        const total = songs.length;
+        target.innerHTML = `
+          <div>
+            <div class="visual-graph-title">참고곡 한눈 그래프</div>
+            <div class="visual-graph-subtitle">현재 검색/필터/정렬 결과 ${escapeHtml(number(total))}곡의 장르, BPM, 연도, 신뢰도 분포입니다.</div>
+          </div>
+          <div class="graph-grid">
+            ${graphCard("장르 TOP", topCounts(songs, (song) => song.genre || "장르 미입력", 5), total)}
+            ${graphCard("BPM 분포", bpmBucketEntries(songs), total)}
+            ${graphCard("연도 분포", yearBucketEntries(songs), total)}
+            ${graphCard("신뢰도", topCounts(songs, (song) => song.data_confidence || "신뢰도 미입력", 4), total)}
+          </div>
+        `;
+      }
+
       function summarizeBpm(songs) {
         const bpms = songs.map(getBpm).filter(Boolean);
         if (!bpms.length) return "-";
@@ -3045,6 +3238,7 @@
         const visibleSongs = state.filtered.slice(0, state.renderLimit);
         $("resultCount").textContent = `${number(state.filtered.length)}곡`;
         renderExploreSummary();
+        renderReferenceGraph();
 
         const grid = $("songGrid");
         if (!state.filtered.length) {
@@ -3577,6 +3771,41 @@
         };
       }
 
+      function riskScoreValue(risk) {
+        if (risk === "높음") return 82;
+        if (risk === "중간") return 52;
+        return 22;
+      }
+
+      function renderSelectedGraph(songs, analysis) {
+        const total = songs.length;
+        const riskValue = riskScoreValue(analysis.risk);
+        const keyEntries = topCounts(songs, (song) => song.key || keyInfo(song).text || "Key 미입력", 4);
+        const hookEntries = topCounts(songs, (song) => song.hook_type || autoHookCandidate(song).type, 4);
+        return `
+          <div class="visual-graph-panel">
+            <div>
+              <div class="visual-graph-title">선택곡 조합 그래프</div>
+              <div class="visual-graph-subtitle">BPM, Key, 후크 유형, 조합 위험도를 한 번에 봅니다.</div>
+            </div>
+            <div class="graph-grid">
+              ${graphCard("BPM 분포", bpmBucketEntries(songs), total)}
+              ${graphCard("Key 분포", keyEntries, total)}
+              ${graphCard("후크 유형", hookEntries, total)}
+              <div class="graph-card">
+                <div class="graph-card-title">조합 위험도</div>
+                <div class="bar-row">
+                  <span class="bar-label">${escapeHtml(analysis.risk)}</span>
+                  <span class="bar-track" aria-hidden="true"><span class="bar-fill" style="width:${riskValue}%"></span></span>
+                  <span class="bar-value">${riskValue}</span>
+                </div>
+                <div class="analysis-note">${escapeHtml(analysis.conflicts.join(" / ") || "정서와 편곡 충돌이 낮습니다.")}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       function renderSelectedInsight(songs) {
         const target = $("selectedInsight");
         if (!target) return;
@@ -3608,6 +3837,7 @@
                 )
                 .join("")}
             </div>
+            ${renderSelectedGraph(songs, analysis)}
             <div class="analysis-note">${escapeHtml(analysis.conflicts.join(" / ") || "큰 충돌 없음. 공통 코드와 후크 유형을 브리프에 우선 반영합니다.")}</div>
             <div class="analysis-note">조합 추천 방향: ${escapeHtml(analysis.direction)}</div>
           </section>
@@ -3799,6 +4029,69 @@
                 .join("")}
             </div>
             <div class="analysis-note">${escapeHtml(mood.briefTone)}</div>
+          </div>
+        `;
+      }
+
+      function radarPoint(axisIndex, value, radius = 70, center = 90) {
+        const angle = -Math.PI / 2 + (Math.PI * 2 * axisIndex) / conceptAxes.length;
+        const scaled = (clamp(value) / 100) * radius;
+        return {
+          x: center + Math.cos(angle) * scaled,
+          y: center + Math.sin(angle) * scaled,
+        };
+      }
+
+      function radarPolygon(value = 100, radius = 70, center = 90) {
+        return conceptAxes
+          .map((_, index) => {
+            const point = radarPoint(index, value, radius, center);
+            return `${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+          })
+          .join(" ");
+      }
+
+      function renderConceptGraph(axes) {
+        const points = conceptAxes
+          .map((axis, index) => {
+            const point = radarPoint(index, axes[axis.id] ?? 50);
+            return `${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+          })
+          .join(" ");
+        const axisLines = conceptAxes
+          .map((axis, index) => {
+            const end = radarPoint(index, 100);
+            const dot = radarPoint(index, axes[axis.id] ?? 50);
+            return `
+              <line class="radar-axis" x1="90" y1="90" x2="${end.x.toFixed(1)}" y2="${end.y.toFixed(1)}"></line>
+              <circle class="radar-dot" cx="${dot.x.toFixed(1)}" cy="${dot.y.toFixed(1)}" r="3"></circle>
+            `;
+          })
+          .join("");
+        const highEntries = conceptAxes
+          .map((axis) => [axis.label, Math.round(axes[axis.id] ?? 50)])
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        return `
+          <div class="visual-graph-panel">
+            <div>
+              <div class="visual-graph-title">컨셉 타입 레이더</div>
+              <div class="visual-graph-subtitle">도형 선택과 감정 좌표가 만드는 8축 성향입니다. 튀어나온 축이 브리프의 우선순위가 됩니다.</div>
+            </div>
+            <div class="radar-wrap">
+              <svg class="radar-chart" viewBox="0 0 180 180" role="img" aria-label="컨셉 8축 레이더 그래프">
+                <polygon class="radar-ring" points="${radarPolygon(25)}"></polygon>
+                <polygon class="radar-ring" points="${radarPolygon(50)}"></polygon>
+                <polygon class="radar-ring" points="${radarPolygon(75)}"></polygon>
+                <polygon class="radar-ring" points="${radarPolygon(100)}"></polygon>
+                ${axisLines}
+                <polygon class="radar-shape" points="${points}"></polygon>
+              </svg>
+              <div class="graph-card">
+                <div class="graph-card-title">강한 축 TOP</div>
+                ${graphRows(highEntries, 100)}
+              </div>
+            </div>
           </div>
         `;
       }
@@ -4702,6 +4995,7 @@
             </div>
             <div class="persona-axis-list">${axisRows}</div>
           </div>
+          ${renderConceptGraph(axes)}
           ${renderMoodRecommendation(axes)}
           <div class="persona-rationale">${rationale}</div>
           <table class="persona-table">
