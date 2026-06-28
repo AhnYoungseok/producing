@@ -230,8 +230,8 @@
         display: grid;
         grid-template-columns: minmax(0, 1.18fr) minmax(360px, 0.82fr);
         grid-template-areas:
-          "composer stats"
-          "composer reference";
+          "composer reference"
+          "stats stats";
         gap: 14px;
         align-items: start;
       }
@@ -652,26 +652,39 @@
       }
 
       .stats-panel .metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-bottom: 12px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: 8px;
       }
 
-      .stats-panel .explore-summary {
-        grid-template-columns: 1fr;
-        padding: 0;
-        border-bottom: 0;
-      }
-
-      .stat-stack {
+      .stats-panel .stat-stack {
         display: grid;
-        gap: 10px;
-        margin-top: 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .compact-stats {
+        padding: 10px 12px 12px;
+      }
+
+      .compact-stats .metric {
+        min-height: 74px;
+        padding: 10px;
+      }
+
+      .compact-stats .metric-value {
+        margin-top: 5px;
+        font-size: 22px;
+      }
+
+      .compact-stats .metric-hint {
+        margin-top: 5px;
+        font-size: 11px;
       }
 
       .stat-box {
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 11px;
+        padding: 9px;
         background: #fbfdff;
       }
 
@@ -682,10 +695,10 @@
       }
 
       .stat-value {
-        margin-top: 5px;
-        font-size: 14px;
+        margin-top: 4px;
+        font-size: 12px;
         font-weight: 800;
-        line-height: 1.4;
+        line-height: 1.35;
       }
 
       .reference-panel .song-grid {
@@ -1234,8 +1247,8 @@
           grid-template-columns: 1fr;
           grid-template-areas:
             "composer"
-            "stats"
-            "reference";
+            "reference"
+            "stats";
         }
 
         .sidebar {
@@ -1295,6 +1308,14 @@
 
         .reference-panel .song-grid {
           min-height: 720px;
+        }
+
+        .compact-stats .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .stats-panel .stat-stack {
+          grid-template-columns: 1fr;
         }
 
         .concept-title {
@@ -1419,71 +1440,10 @@
           </div>
         </section>
 
-        <section class="panel stats-panel" aria-label="통계">
-          <div class="panel-head">
-            <h2>히트곡 통계</h2>
-            <span id="resultCount" class="count-badge">0곡</span>
-          </div>
-          <div class="stats-body">
-            <section class="metrics" aria-label="데이터 현황">
-              <div class="metric">
-                <div class="metric-label">누적 기준</div>
-                <div id="totalCount" class="metric-value">-</div>
-                <div class="metric-hint">중복 방지 기준 전체 수</div>
-              </div>
-              <div class="metric">
-                <div class="metric-label">상세 공개곡</div>
-                <div id="visibleCount" class="metric-value">-</div>
-                <div class="metric-hint">바로 참고 가능한 곡</div>
-              </div>
-              <div class="metric">
-                <div class="metric-label">선택한 참고곡</div>
-                <div id="selectedCountMetric" class="metric-value">0</div>
-                <div class="metric-hint">조합 브리프 기준</div>
-              </div>
-              <div class="metric">
-                <div class="metric-label">마지막 추가</div>
-                <div id="updatedAt" class="metric-value">-</div>
-                <div id="latestAdded" class="metric-hint">-</div>
-              </div>
-            </section>
-
-            <div class="explore-summary">
-              <div class="summary-box">
-                <div class="summary-title">현재 BPM</div>
-                <div id="summaryBpm" class="summary-value">-</div>
-              </div>
-              <div class="summary-box">
-                <div class="summary-title">주요 후크</div>
-                <div id="summaryHook" class="summary-value">-</div>
-              </div>
-              <div class="summary-box">
-                <div class="summary-title">주요 장르</div>
-                <div id="summaryGenre" class="summary-value">-</div>
-              </div>
-            </div>
-
-            <div class="stat-stack">
-              <div class="stat-box">
-                <div class="stat-label">국가 TOP</div>
-                <div id="summaryCountry" class="stat-value">-</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">차트/출처 TOP</div>
-                <div id="summarySource" class="stat-value">-</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">신뢰도 분포</div>
-                <div id="summaryConfidence" class="stat-value">-</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section class="panel reference-panel">
           <div class="panel-head">
             <h2>참고곡 찾기</h2>
-            <span class="count-badge">보조 탐색</span>
+            <span id="resultCount" class="count-badge">0곡</span>
           </div>
 
           <div class="finder">
@@ -1515,6 +1475,52 @@
           <div id="songGrid" class="song-grid"></div>
           <div class="load-more">
             <button id="loadMoreButton" class="secondary" type="button">더 보기</button>
+          </div>
+        </section>
+
+        <section class="panel stats-panel" aria-label="히트곡 통계">
+          <div class="panel-head">
+            <h2>히트곡 통계</h2>
+            <span class="count-badge">요약</span>
+          </div>
+          <div class="stats-body compact-stats">
+            <section class="metrics" aria-label="데이터 현황">
+              <div class="metric">
+                <div class="metric-label">누적 기준</div>
+                <div id="totalCount" class="metric-value">-</div>
+                <div class="metric-hint">중복 방지 기준 전체 수</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">상세 공개곡</div>
+                <div id="visibleCount" class="metric-value">-</div>
+                <div class="metric-hint">바로 참고 가능한 곡</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">선택한 참고곡</div>
+                <div id="selectedCountMetric" class="metric-value">0</div>
+                <div class="metric-hint">조합 브리프 기준</div>
+              </div>
+              <div class="metric">
+                <div class="metric-label">마지막 추가</div>
+                <div id="updatedAt" class="metric-value">-</div>
+                <div id="latestAdded" class="metric-hint">-</div>
+              </div>
+            </section>
+
+            <div class="stat-stack">
+              <div class="stat-box">
+                <div class="stat-label">국가 TOP</div>
+                <div id="summaryCountry" class="stat-value">-</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">차트/출처 TOP</div>
+                <div id="summarySource" class="stat-value">-</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">신뢰도 분포</div>
+                <div id="summaryConfidence" class="stat-value">-</div>
+              </div>
+            </div>
           </div>
         </section>
       </div>

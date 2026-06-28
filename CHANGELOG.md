@@ -28,6 +28,7 @@
 
 - Optimized public-site concept selection so button state updates immediately while heavy recommendation and brief regeneration are debounced and cached.
 - Expanded the public-site reference-song finder list height so more songs remain visible while composing, especially on desktop and mobile review screens.
+- Moved the public-site hit-song statistics section to the end of the page and compressed it into a short summary so creation and reference-song workflows stay primary.
 - Moved the concept reset button to the top of the concept section and the brief reset button to the top of the creation brief section.
 - Updated the public-site concept label to the softer `감성 / 말투`.
 - Changed lyric analysis completion so structure-only analysis can count as analyzed while still showing that the original chorus/hook text must be manually verified before any excerpt is displayed.
