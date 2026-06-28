@@ -266,7 +266,6 @@
 
       .composer-body > .concept-lab,
       .composer-body > .candidate-pool,
-      .composer-body > .final-pick-panel,
       .composer-body > .stack,
       .composer-body > .small {
         grid-column: 1;
@@ -286,7 +285,8 @@
         position: sticky;
         top: 14px;
         max-height: calc(100vh - 28px);
-        overflow: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
         margin-top: 0;
         border: 1px solid var(--line-strong);
         border-radius: 10px;
@@ -297,6 +297,27 @@
 
       .brief-layout .recipe {
         margin-top: 0;
+      }
+
+      .brief-layout .final-pick-panel {
+        margin-bottom: 0;
+        border: 1px solid #b7ded9;
+        border-radius: 8px;
+        padding: 10px;
+        background: #ffffff;
+      }
+
+      .brief-layout .selected-list {
+        max-height: min(24vh, 260px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      .brief-layout .selected-insight {
+        max-height: min(24vh, 260px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        margin-bottom: 0;
       }
 
       .creation-rail-head {
@@ -1767,7 +1788,6 @@
 
         .composer-body > .concept-lab,
         .composer-body > .candidate-pool,
-        .composer-body > .final-pick-panel,
         .composer-body > .stack,
         .composer-body > .small,
         .composer-body > .brief-layout {
@@ -1979,15 +1999,6 @@
               <div id="conceptHints" class="concept-hints"></div>
             </div>
             <div id="candidatePool" class="candidate-pool"></div>
-            <section class="final-pick-panel" aria-label="최종 선택곡">
-              <div class="section-mini-head">
-                <span>최종 선택곡</span>
-                <span class="small">후보곡이나 참고곡에서 고른 곡만 브리프/작곡 설계에 반영됩니다.</span>
-              </div>
-              <div class="selection-rule">브리프 상세 생성과 작곡 설계는 이 영역에 담긴 최종 선택곡의 코드/후크/멜로디/가사/편곡 분석과 통계만 사용합니다.</div>
-              <div id="selectedList" class="selected-list"></div>
-              <div id="selectedInsight" class="selected-insight"></div>
-            </section>
             <div class="stack">
               <textarea id="ideaInput" placeholder="내 곡 키워드: 예) 밤 산책, 후회 없는 이별, 120 BPM 댄스팝"></textarea>
               <div class="action-row">
@@ -2006,20 +2017,15 @@
                   <span>4 청음</span>
                 </div>
               </div>
-              <div id="youtubePreview" class="youtube-preview empty">곡 카드의 미리듣기 버튼을 누르면 공식 YouTube 임베드 또는 링크 등록 패널이 이 자리에 열립니다.</div>
-              <div class="recipe">
-                <div class="recipe-head">
-                  <div class="recipe-title">창작 브리프</div>
-                  <div class="header-actions">
-                    <button id="clearSelectionButton" class="ghost" type="button">브리프 초기화</button>
-                    <button id="copyRecipeButton" class="ghost" type="button">복사</button>
-                    <button id="copyChordButton" class="ghost" type="button">코드만</button>
-                    <button id="copyHookButton" class="ghost" type="button">후렴만</button>
-                    <button id="copyTaskButton" class="ghost" type="button">오늘 작업</button>
-                  </div>
+              <section class="final-pick-panel" aria-label="최종 선택곡">
+                <div class="section-mini-head">
+                  <span>최종 선택곡</span>
+                  <span class="small">이 곡들만 브리프/작곡 설계에 반영됩니다.</span>
                 </div>
-                <div id="recipeBody" class="recipe-body">참고곡을 1곡 이상 담거나 유형 맞춤 20곡을 누르면 창작 브리프를 만들 수 있습니다.</div>
-              </div>
+                <div class="selection-rule">브리프 상세 생성과 작곡 설계는 이 영역에 담긴 최종 선택곡의 코드/후크/멜로디/가사/편곡 분석과 통계만 사용합니다.</div>
+                <div id="selectedList" class="selected-list"></div>
+                <div id="selectedInsight" class="selected-insight"></div>
+              </section>
               <aside class="song-plan" aria-label="작곡 설계 요약">
                 <div class="recipe-head">
                   <div>
@@ -2044,6 +2050,20 @@
                   </div>
                 </div>
               </aside>
+              <div id="youtubePreview" class="youtube-preview empty">곡 카드의 미리듣기 버튼을 누르면 공식 YouTube 임베드 또는 링크 등록 패널이 이 자리에 열립니다.</div>
+              <div class="recipe">
+                <div class="recipe-head">
+                  <div class="recipe-title">창작 브리프</div>
+                  <div class="header-actions">
+                    <button id="clearSelectionButton" class="ghost" type="button">브리프 초기화</button>
+                    <button id="copyRecipeButton" class="ghost" type="button">복사</button>
+                    <button id="copyChordButton" class="ghost" type="button">코드만</button>
+                    <button id="copyHookButton" class="ghost" type="button">후렴만</button>
+                    <button id="copyTaskButton" class="ghost" type="button">오늘 작업</button>
+                  </div>
+                </div>
+                <div id="recipeBody" class="recipe-body">참고곡을 1곡 이상 담거나 유형 맞춤 20곡을 누르면 창작 브리프를 만들 수 있습니다.</div>
+              </div>
             </div>
             <p class="small">
               브리프는 코드/화성, 곡 구조, 후크 설계를 우선합니다. 참고곡은 아래 또는 우측에서 필요할 때만 찾아 담으면 됩니다.
