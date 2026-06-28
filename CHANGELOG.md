@@ -6,6 +6,7 @@
 
 - Removed the public-site creative brief panel from the main workflow and redirected the creation action to final-pick-based core chord generation.
 - Corrected public-site chord audition voicing so `add9` chords no longer imply a dominant seventh and slash chords render their bass note separately.
+- Tightened public-site chord playback accuracy with a fuller chord parser for `6/9`, slash bass, altered tensions, omissions, power chords, and progression-aware voice leading.
 - Rebuilt Composer Coach concept flow around structured archetypes, reset support, concept-aware reference matching, and harmony briefs that vary from the matched reference statistics.
 - Changed the default auto-reference batch settings to safe development defaults: disabled and no startup run unless explicitly enabled by environment variables.
 - Replaced broken Hook Lab UI copy and backend Hook Lab fallback strings so loading, error, empty, search, filter, confidence, and pagination states are readable.

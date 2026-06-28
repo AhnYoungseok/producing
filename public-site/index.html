@@ -5115,12 +5115,15 @@
         const clean = String(symbol || "")
           .replace(/[|,]/g, "")
           .trim();
-        const match = clean.match(/^([A-G](?:#|b)?)([^/]*)(?:\/([A-G](?:#|b)?))?/i);
+        const match = clean.match(/^([A-G](?:#|b)?)(.*)$/i);
         if (!match) return null;
+        const tail = (match[2] || "").trim();
+        const slashBass = tail.match(/\/([A-G](?:#|b)?)$/i);
+        const suffix = slashBass ? tail.slice(0, slashBass.index).trim() : tail;
         return {
           root: match[1],
-          suffix: match[2] || "",
-          bass: match[3] || "",
+          suffix,
+          bass: slashBass ? slashBass[1] : "",
           original: clean,
         };
       }
@@ -6316,28 +6319,44 @@
       }
 
       const midiNoteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+      const midiFlatNoteNames = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
 
-      function midiNoteName(midi) {
+      function midiNoteName(midi, preferFlats = false) {
         if (!Number.isFinite(midi)) return "";
         const pc = ((Math.round(midi) % 12) + 12) % 12;
         const octave = Math.floor(Math.round(midi) / 12) - 1;
-        return `${midiNoteNames[pc]}${octave}`;
+        return `${(preferFlats ? midiFlatNoteNames : midiNoteNames)[pc]}${octave}`;
+      }
+
+      function chordPrefersFlats(chord) {
+        if (!chord) return false;
+        return /b$/.test(chord.root) || /b$/.test(chord.bass || "") || /b(5|9|11|13)/i.test(chord.suffix || "");
       }
 
       function uniqueMidiNotes(notes) {
         return [...new Set(notes.filter((note) => Number.isFinite(note)))].sort((a, b) => a - b);
       }
 
+      function cleanChordSuffix(suffix) {
+        return String(suffix || "")
+          .replace(/[()\s]/g, "")
+          .replace(/Δ/g, "maj")
+          .replace(/−/g, "m");
+      }
+
       function chordAudioIntervals(suffix) {
-        const text = String(suffix || "");
+        const text = cleanChordSuffix(suffix);
         const hasAdd9 = /add9/i.test(text);
+        const hasAdd2 = /add2/i.test(text);
+        const isSixNine = /6\/9/i.test(text);
         const hasMajorSeventhFamily = /maj7|maj9|maj13|mmaj7/i.test(text);
-        const hasMinorSeventhFamily = /m7|min7|m9|min9|ø/i.test(text);
+        const hasMinorSeventhFamily = /^m(?!aj).*7|m7|min7|m9|min9|m11|min11|m13|min13|ø/i.test(text);
         const hasPlainDominantSeventh = /(^|[^a-z])7/i.test(text);
-        const hasPlainNinth = /(^|[^a-z])9/i.test(text);
-        const hasExtendedDominant = /11|13|alt/i.test(text) || (hasPlainNinth && !hasAdd9);
+        const hasPlainNinth = /(^|[^a-z#/])9/i.test(text) || /\/9/.test(text);
+        const hasExtendedDominant = /11|13|alt/i.test(text) || (hasPlainNinth && !hasAdd9 && !isSixNine && !hasMajorSeventhFamily && !hasMinorSeventhFamily);
         let intervals;
-        if (/sus2/i.test(text)) intervals = [0, 2, 7];
+        if (/^5$/.test(text)) intervals = [0, 7];
+        else if (/sus2/i.test(text)) intervals = [0, 2, 7];
         else if (/sus4|sus/i.test(text)) intervals = [0, 5, 7];
         else if (/dim|°|ø|m7b5/i.test(text)) intervals = [0, 3, 6];
         else if (/aug|\+5|#5/i.test(text)) intervals = [0, 4, 8];
@@ -6354,11 +6373,17 @@
         if (/6/.test(text) && !/16/.test(text)) intervals.push(9);
         if (/b9/i.test(text)) intervals.push(13);
         if (/#9/i.test(text)) intervals.push(15);
-        if (hasAdd9 || hasPlainNinth || /maj9|min9|m9/i.test(text)) intervals.push(14);
+        if (hasAdd2) intervals.push(2);
+        if (hasAdd9 || hasPlainNinth || /maj9|min9|m9|\/9/i.test(text)) intervals.push(14);
         if (/#11/i.test(text)) intervals.push(18);
+        else if (/b11/i.test(text)) intervals.push(16);
         else if (/11/i.test(text)) intervals.push(17);
-        if (/13/i.test(text)) intervals.push(21);
-        if (/alt/i.test(text)) intervals.push(13, 18);
+        if (/b13/i.test(text)) intervals.push(20);
+        else if (/#13/i.test(text)) intervals.push(22);
+        else if (/13/i.test(text)) intervals.push(21);
+        if (/alt/i.test(text)) intervals.push(13, 15, 18, 20);
+        if (/no3|omit3/i.test(text)) intervals = intervals.filter((interval) => ![3, 4].includes(interval % 12));
+        if (/no5|omit5/i.test(text)) intervals = intervals.filter((interval) => ![6, 7, 8].includes(interval % 12));
 
         return [...new Set(intervals)].sort((a, b) => a - b);
       }
@@ -6379,18 +6404,50 @@
         return midi;
       }
 
-      function chordMidiNotes(symbol) {
+      function nearestMidiForPitchClass(pc, target, min = 55, max = 79) {
+        const candidates = [];
+        for (let octave = 3; octave <= 6; octave += 1) {
+          const midi = (octave + 1) * 12 + pc;
+          if (midi >= min && midi <= max) candidates.push(midi);
+        }
+        if (!candidates.length) return min + pc;
+        return candidates.reduce((best, midi) => (Math.abs(midi - target) < Math.abs(best - target) ? midi : best), candidates[0]);
+      }
+
+      function chordVoicing(symbol, previousUpper = []) {
         const chord = parseChordSymbol(symbol);
-        if (!chord) return [];
+        if (!chord) return { symbol, bass: null, upper: [], notes: [] };
         const pc = pitchClass(chord.root);
-        if (pc === undefined) return [];
-        const upperRoot = voicedUpperRoot(pc);
-        const upperNotes = chordAudioIntervals(chord.suffix).map((interval) => {
-          let note = upperRoot + interval;
-          while (note > 81) note -= 12;
-          return note;
+        if (pc === undefined) return { symbol, bass: null, upper: [], notes: [] };
+        const intervals = chordAudioIntervals(chord.suffix);
+        const bass = bassMidiForChord(chord, pc);
+        const seedRoot = voicedUpperRoot(pc);
+        const upper = intervals.map((interval, index) => {
+          const pitch = (pc + interval) % 12;
+          const defaultTarget = seedRoot + interval;
+          const target = previousUpper[index] ?? defaultTarget;
+          return nearestMidiForPitchClass(pitch, target);
         });
-        return uniqueMidiNotes([bassMidiForChord(chord, pc), ...upperNotes]);
+        const compactUpper = uniqueMidiNotes(upper);
+        return {
+          symbol,
+          bass,
+          upper: compactUpper,
+          notes: uniqueMidiNotes([bass, ...compactUpper]),
+        };
+      }
+
+      function chordSequenceVoicings(chords) {
+        let previousUpper = [];
+        return chords.map((symbol) => {
+          const voiced = chordVoicing(symbol, previousUpper);
+          previousUpper = voiced.upper;
+          return voiced;
+        });
+      }
+
+      function chordMidiNotes(symbol) {
+        return chordVoicing(symbol).notes;
       }
 
       function renderChordVoicePreview() {
@@ -6402,14 +6459,15 @@
           target.innerHTML = `<div class="chord-voice-empty">코드를 입력하면 베이스와 상성부 보이싱이 여기에 표시됩니다.</div>`;
           return;
         }
-        const rows = chords
-          .map((symbol) => {
-            const notes = chordMidiNotes(symbol);
-            const bass = notes.length ? midiNoteName(notes[0]) : "-";
-            const upper = notes.slice(1).map(midiNoteName).join(" · ") || "-";
+        const rows = chordSequenceVoicings(chords)
+          .map((voicing) => {
+            const parsed = parseChordSymbol(voicing.symbol);
+            const preferFlats = chordPrefersFlats(parsed);
+            const bass = voicing.bass !== null ? midiNoteName(voicing.bass, preferFlats) : "-";
+            const upper = voicing.upper.map((midi) => midiNoteName(midi, preferFlats)).join(" · ") || "-";
             return `
               <tr>
-                <td><strong>${escapeHtml(symbol)}</strong></td>
+                <td><strong>${escapeHtml(voicing.symbol)}</strong></td>
                 <td>${escapeHtml(bass)}</td>
                 <td>${escapeHtml(upper)}</td>
               </tr>
@@ -6475,10 +6533,10 @@
         master.connect(filter);
         filter.connect(compressor);
         compressor.connect(context.destination);
-        chords.forEach((symbol, index) => {
+        chordSequenceVoicings(chords).forEach((voicing, index) => {
           const start = context.currentTime + index * chordDuration;
           const end = start + chordDuration * 0.88;
-          chordMidiNotes(symbol).forEach((midi, noteIndex) => {
+          voicing.notes.forEach((midi, noteIndex) => {
             const noteGain = context.createGain();
             const peak = noteIndex === 0 ? 0.105 : 0.052;
             noteGain.gain.setValueAtTime(0.0001, start);
