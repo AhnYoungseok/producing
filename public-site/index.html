@@ -436,6 +436,54 @@
         line-height: 1.45;
       }
 
+      .type-axis-guide {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .type-axis-title {
+        color: var(--teal-dark);
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .type-axis-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 7px;
+      }
+
+      .type-axis-item {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px;
+        background: #fbfdff;
+      }
+
+      .type-axis-code {
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 950;
+      }
+
+      .type-axis-label {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 900;
+      }
+
+      .type-axis-desc {
+        margin-top: 4px;
+        color: var(--quiet);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
       .archetype-card {
         display: grid;
         gap: 7px;
@@ -1378,6 +1426,10 @@
           justify-content: flex-start;
         }
 
+        .type-axis-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .concept-note {
           text-align: left;
         }
@@ -1407,12 +1459,37 @@
               <div class="concept-head">
                 <div>
                   <div class="eyebrow">1. 컨셉 먼저</div>
-                  <h3 class="concept-title">말투, 시점, 지금 하고 싶은 말을 먼저 잡습니다.</h3>
+                  <h3 class="concept-title">표현 방향, 감정 온도, 시간 방향, 사운드 질감을 먼저 잡습니다.</h3>
                 </div>
                 <div class="concept-head-actions">
                   <div class="concept-note">최신 차트 감각 + 입체적인 태도 + 히트곡 데이터</div>
                   <button id="randomConceptButton" class="secondary" type="button">컨셉 랜덤</button>
                   <button id="clearConceptButton" class="ghost" type="button">컨셉 초기화</button>
+                </div>
+              </div>
+              <div class="type-axis-guide" aria-label="컨셉 타입 축 설명">
+                <div class="type-axis-title">컨셉 타입 읽는 법</div>
+                <div class="type-axis-grid">
+                  <div class="type-axis-item">
+                    <div class="type-axis-code">I / E</div>
+                    <div class="type-axis-label">표현 방향</div>
+                    <div class="type-axis-desc">I 내면/은유 · E 표현/선언</div>
+                  </div>
+                  <div class="type-axis-item">
+                    <div class="type-axis-code">L / H</div>
+                    <div class="type-axis-label">감정 온도</div>
+                    <div class="type-axis-desc">L 저온 독백 · H 고온 코러스</div>
+                  </div>
+                  <div class="type-axis-item">
+                    <div class="type-axis-code">M / R</div>
+                    <div class="type-axis-label">시간 방향</div>
+                    <div class="type-axis-desc">M 회상/여운 · R 회복/전진</div>
+                  </div>
+                  <div class="type-axis-item">
+                    <div class="type-axis-code">C / X</div>
+                    <div class="type-axis-label">사운드 질감</div>
+                    <div class="type-axis-desc">C 클래식 서정 · X 장르혼합/트렌드</div>
+                  </div>
                 </div>
               </div>
               <div id="conceptBoard" class="concept-board"></div>
@@ -3355,18 +3432,18 @@
             code: "----",
             name: "선택 전 · 컨셉 대기형",
             shortName: "컨셉 대기형",
-            gloss: "도형을 고르면 I/E · L/H · M/R · C/X 네 축으로 타입명이 붙습니다.",
+            gloss: "도형을 고르면 표현 방향, 감정 온도, 시간 방향, 사운드 질감 네 축으로 타입명이 붙습니다.",
             tags: ["선택 전"],
           };
         }
         const axes = archetype.axes || conceptAxisScores();
-        const direct = (axes.directness || 50) >= 55 ? { code: "E", word: "표현", gloss: "E 표현/선언" } : { code: "I", word: "내면", gloss: "I 내면/은유" };
-        const heat = (axes.energy || 50) >= 55 ? { code: "H", word: "고온", gloss: "H 큰 코러스/에너지" } : { code: "L", word: "저온", gloss: "L 저온/독백" };
-        const motion = (axes.recovery || 50) >= (axes.longing || 50) ? { code: "R", word: "회복", gloss: "R 회복/전진" } : { code: "M", word: "회상", gloss: "M 회상/여운" };
-        const texture = (axes.experimentation || 50) >= 60 || (axes.market || 50) >= 64 ? { code: "X", word: "혼합", gloss: "X 트렌드/장르혼합" } : { code: "C", word: "서정", gloss: "C 클래식/서정" };
+        const direct = (axes.directness || 50) >= 55 ? { code: "E", word: "표현", gloss: "표현 방향 E: 표현/선언" } : { code: "I", word: "내면", gloss: "표현 방향 I: 내면/은유" };
+        const heat = (axes.energy || 50) >= 55 ? { code: "H", word: "고온", gloss: "감정 온도 H: 고온 코러스" } : { code: "L", word: "저온", gloss: "감정 온도 L: 저온 독백" };
+        const motion = (axes.recovery || 50) >= (axes.longing || 50) ? { code: "R", word: "회복", gloss: "시간 방향 R: 회복/전진" } : { code: "M", word: "회상", gloss: "시간 방향 M: 회상/여운" };
+        const texture = (axes.experimentation || 50) >= 60 || (axes.market || 50) >= 64 ? { code: "X", word: "혼합", gloss: "사운드 질감 X: 장르혼합/트렌드" } : { code: "C", word: "서정", gloss: "사운드 질감 C: 클래식 서정" };
         const code = `${direct.code}${heat.code}${motion.code}${texture.code}`;
         const base = String(archetype.name || "컨셉").replace(/형$/, "");
-        const shortName = `${heat.word} ${motion.word} ${direct.word}${texture.word}형`;
+        const shortName = `${direct.word}-${heat.word}-${motion.word}-${texture.word}형`;
         return {
           code,
           name: `${shortName} · ${base} 계열`,

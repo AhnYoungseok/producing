@@ -20,6 +20,7 @@
 - Added a public-site composition plan panel next to the creation brief, separating song structure, chord progression, core lyric, and accompaniment/instrument recommendations from the long-form brief.
 - Added MBTI-style public-site concept type naming, with compact four-letter concept codes and Korean type names shown in the concept panel, hints, brief, and composition plan.
 - Added a top-level public-site random concept button and renamed the creation action to `브리프 상세 생성`.
+- Added a public-site concept type axis guide so four-letter codes map clearly to expression direction, emotional temperature, time direction, and sound texture.
 - Added `POST /api/composer/{project_id}/reset` to restart the Composer Coach concept flow without manually editing the database.
 - Added and tested the bulk Hook Lab summary response shape for `GET /api/library/hook-summaries`, including country, year, BPM, key, hook cue/type/location, melody summaries, lyrics source status, confidence, and updated timestamps.
 - Added a Hook Lab endpoint structure test for the bulk summary payload.
