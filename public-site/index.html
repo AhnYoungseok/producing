@@ -231,7 +231,6 @@
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas:
           "composer"
-          "reference"
           "stats";
         gap: 14px;
         align-items: start;
@@ -248,7 +247,7 @@
       }
 
       .reference-panel {
-        grid-area: reference;
+        grid-column: 1;
         overflow: hidden;
       }
 
@@ -266,6 +265,7 @@
 
       .composer-body > .concept-lab,
       .composer-body > .candidate-pool,
+      .composer-body > .reference-panel,
       .composer-body > .stack,
       .composer-body > .small {
         grid-column: 1;
@@ -852,9 +852,29 @@
 
       .reference-panel .song-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        min-height: min(235vh, 2600px);
-        max-height: min(260vh, 2900px);
+        min-height: 0;
+        max-height: min(1180px, 120vh);
         overflow-y: auto;
+        padding-bottom: 12px;
+      }
+
+      .composer-body > .reference-panel {
+        border: 1px solid #d4e6e3;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+      }
+
+      .reference-panel .panel-head {
+        background: linear-gradient(90deg, #f1fbfa, #fff);
+      }
+
+      .reference-priority-note {
+        padding: 0 16px 12px;
+        border-bottom: 1px solid var(--line);
+        color: var(--quiet);
+        font-size: 12px;
+        line-height: 1.45;
       }
 
       .panel-head,
@@ -1770,7 +1790,6 @@
           grid-template-columns: 1fr;
           grid-template-areas:
             "composer"
-            "reference"
             "stats";
         }
 
@@ -1788,6 +1807,7 @@
 
         .composer-body > .concept-lab,
         .composer-body > .candidate-pool,
+        .composer-body > .reference-panel,
         .composer-body > .stack,
         .composer-body > .small,
         .composer-body > .brief-layout {
@@ -1802,7 +1822,6 @@
 
         .reference-panel .song-grid {
           grid-template-columns: 1fr;
-          min-height: 2200px;
           max-height: none;
           overflow-y: visible;
         }
@@ -1853,7 +1872,7 @@
         }
 
         .reference-panel .song-grid {
-          min-height: 2600px;
+          max-height: none;
         }
 
         .compact-stats .metrics {
@@ -1998,7 +2017,6 @@
               </div>
               <div id="conceptHints" class="concept-hints"></div>
             </div>
-            <div id="candidatePool" class="candidate-pool"></div>
             <div class="stack">
               <textarea id="ideaInput" placeholder="내 곡 키워드: 예) 밤 산책, 후회 없는 이별, 120 BPM 댄스팝"></textarea>
               <div class="action-row">
@@ -2006,6 +2024,51 @@
                 <button id="recipeButton" type="button">브리프 상세 생성</button>
               </div>
             </div>
+            <div id="candidatePool" class="candidate-pool"></div>
+            <section class="reference-panel" aria-label="참고곡 조건 검색">
+              <div class="panel-head">
+                <div>
+                  <h2>2순위 · 조건 검색 참고곡 찾기</h2>
+                  <div class="small">유형 맞춤 후보곡 20이 가장 가까운 1순위입니다. 여기서는 조건을 직접 바꿔 추가 참고곡을 좁혀 찾습니다.</div>
+                </div>
+                <span id="resultCount" class="count-badge">0곡</span>
+              </div>
+              <div class="reference-priority-note">기본은 조건에 맞는 상위 10곡만 보여줍니다. 더 필요하면 `더 보기`로 10곡씩 확장하세요.</div>
+
+              <div class="finder">
+                <input id="searchInput" type="search" placeholder="곡명, 아티스트, 후크, 테마 검색" />
+                <select id="countryFilter" aria-label="국가"></select>
+                <select id="genreFilter" aria-label="장르"></select>
+                <select id="bpmFilter" aria-label="BPM"></select>
+                <select id="hookFilter" aria-label="후크"></select>
+                <select id="confidenceFilter" aria-label="신뢰도"></select>
+              </div>
+
+              <div id="quickChips" class="chips"></div>
+              <div id="sortChips" class="sort-chips" aria-label="참고곡 정렬"></div>
+
+              <div class="explore-summary">
+                <div class="summary-box">
+                  <div class="summary-title">현재 BPM</div>
+                  <div id="summaryBpm" class="summary-value">-</div>
+                </div>
+                <div class="summary-box">
+                  <div class="summary-title">주요 후크</div>
+                  <div id="summaryHook" class="summary-value">-</div>
+                </div>
+                <div class="summary-box">
+                  <div class="summary-title">주요 장르</div>
+                  <div id="summaryGenre" class="summary-value">-</div>
+                </div>
+              </div>
+
+              <div id="referenceGraph" class="visual-graph-panel" aria-label="참고곡 그래프"></div>
+
+              <div id="songGrid" class="song-grid"></div>
+              <div class="load-more">
+                <button id="loadMoreButton" class="secondary" type="button">더 보기</button>
+              </div>
+            </section>
             <div class="brief-layout">
               <div class="creation-rail-head">
                 <div class="creation-rail-title">창작 작업대</div>
@@ -2066,49 +2129,8 @@
               </div>
             </div>
             <p class="small">
-              브리프는 코드/화성, 곡 구조, 후크 설계를 우선합니다. 참고곡은 아래 또는 우측에서 필요할 때만 찾아 담으면 됩니다.
+              브리프는 코드/화성, 곡 구조, 후크 설계를 우선합니다. 먼저 유형 맞춤 후보곡을 보고, 부족할 때 바로 아래 조건 검색 참고곡에서 더 찾아 담으세요.
             </p>
-          </div>
-        </section>
-
-        <section class="panel reference-panel">
-          <div class="panel-head">
-            <h2>참고곡 찾기</h2>
-            <span id="resultCount" class="count-badge">0곡</span>
-          </div>
-
-          <div class="finder">
-            <input id="searchInput" type="search" placeholder="곡명, 아티스트, 후크, 테마 검색" />
-            <select id="countryFilter" aria-label="국가"></select>
-            <select id="genreFilter" aria-label="장르"></select>
-            <select id="bpmFilter" aria-label="BPM"></select>
-            <select id="hookFilter" aria-label="후크"></select>
-            <select id="confidenceFilter" aria-label="신뢰도"></select>
-          </div>
-
-          <div id="quickChips" class="chips"></div>
-          <div id="sortChips" class="sort-chips" aria-label="참고곡 정렬"></div>
-
-          <div class="explore-summary">
-            <div class="summary-box">
-              <div class="summary-title">현재 BPM</div>
-              <div id="summaryBpm" class="summary-value">-</div>
-            </div>
-            <div class="summary-box">
-              <div class="summary-title">주요 후크</div>
-              <div id="summaryHook" class="summary-value">-</div>
-            </div>
-            <div class="summary-box">
-              <div class="summary-title">주요 장르</div>
-              <div id="summaryGenre" class="summary-value">-</div>
-            </div>
-          </div>
-
-          <div id="referenceGraph" class="visual-graph-panel" aria-label="참고곡 그래프"></div>
-
-          <div id="songGrid" class="song-grid"></div>
-          <div class="load-more">
-            <button id="loadMoreButton" class="secondary" type="button">더 보기</button>
           </div>
         </section>
 
@@ -2174,6 +2196,7 @@
       const ANALYSIS_EDIT_KEY = "hit-song-lab-analysis-edits-v1";
       const LAST_BRIEF_KEY = "hit-song-lab-last-brief-v1";
       const CHORD_DRAFT_KEY = "hit-song-lab-chord-draft-v1";
+      const REFERENCE_PAGE_SIZE = 10;
 
       const OFFICIAL_YOUTUBE_VIDEO_HINTS = [
         { terms: ["어떻게 이별까지 사랑하겠어", "akmu"], videoId: "m3DZsBw5bnE" },
@@ -2217,7 +2240,7 @@
         conceptCache: new Map(),
         activePreset: "hit",
         sortMode: "hit",
-        renderLimit: 80,
+        renderLimit: REFERENCE_PAGE_SIZE,
       };
 
       const songSearchTextCache = new WeakMap();
@@ -3718,7 +3741,7 @@
       function renderSongs() {
         state.filtered = filteredSongs();
         const visibleSongs = state.filtered.slice(0, state.renderLimit);
-        $("resultCount").textContent = `${number(state.filtered.length)}곡`;
+        $("resultCount").textContent = `${number(visibleSongs.length)} / ${number(state.filtered.length)}곡`;
         renderExploreSummary();
         renderReferenceGraph();
 
@@ -3730,7 +3753,7 @@
         }
 
         $("loadMoreButton").style.display = visibleSongs.length < state.filtered.length ? "inline-flex" : "none";
-        $("loadMoreButton").textContent = `더 보기 (${number(visibleSongs.length)} / ${number(state.filtered.length)})`;
+        $("loadMoreButton").textContent = `더 보기 10곡 (${number(visibleSongs.length)} / ${number(state.filtered.length)})`;
 
         grid.innerHTML = visibleSongs
           .map((song) => {
@@ -6804,8 +6827,8 @@
           .join("");
         target.innerHTML = `
           <div class="section-mini-head">
-            <span>유형 맞춤 후보곡 20</span>
-            <span class="small">각 후보곡의 최종 곡에 담기 버튼을 누르면 아래 최종 선택곡에 바로 모입니다.</span>
+            <span>1순위 · 유형 맞춤 후보곡 20</span>
+            <span class="small">현재 컨셉 좌표와 가장 가까운 근사치입니다. 최종 곡에 담으면 우측 상단에 모입니다.</span>
           </div>
           <div class="candidate-pool-body">${rows}</div>
         `;
@@ -6881,7 +6904,7 @@
 
       function applyPreset(id) {
         state.activePreset = state.activePreset === id ? "hit" : id;
-        state.renderLimit = 80;
+        state.renderLimit = REFERENCE_PAGE_SIZE;
         if (id === "hit") state.sortMode = "hit";
         if (id === "all") {
           $("searchInput").value = "";
@@ -6903,7 +6926,7 @@
       function applySortMode(id) {
         if (!sortModes.some((mode) => mode.id === id)) return;
         state.sortMode = id;
-        state.renderLimit = 80;
+        state.renderLimit = REFERENCE_PAGE_SIZE;
         renderChips();
         renderSongs();
         setStatus(`${sortModes.find((mode) => mode.id === id)?.label || "정렬"} 적용`);
@@ -6924,7 +6947,7 @@
           const eventName = id === "searchInput" ? "input" : "change";
           $(id).addEventListener(eventName, () => {
             if (id !== "searchInput") state.activePreset = "hit";
-            state.renderLimit = 80;
+            state.renderLimit = REFERENCE_PAGE_SIZE;
             renderChips();
             renderSongs();
           });
@@ -7048,7 +7071,7 @@
           });
         });
         $("loadMoreButton").addEventListener("click", () => {
-          state.renderLimit += 80;
+          state.renderLimit += REFERENCE_PAGE_SIZE;
           renderSongs();
         });
       }
