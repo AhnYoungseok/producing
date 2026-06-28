@@ -3554,6 +3554,8 @@
         }
         const youtube = youtubeUrl(song);
         const embed = youtubeEmbedUrl(song);
+        const selected = isSelected(song);
+        const finalPickButton = `<button class="final-select-button" type="button" data-preview-add="${escapeHtml(identity(song))}" ${selected ? "disabled" : ""}>${selected ? "최종 선택곡에 담김" : "이 곡을 최종 선택곡에 담기"}</button>`;
         target.className = "youtube-preview";
         if (!embed) {
           target.innerHTML = `
@@ -3564,6 +3566,7 @@
               <button class="secondary" type="button" data-save-youtube="${escapeHtml(identity(song))}">저장 후 재생</button>
             </div>
             <div class="song-actions">
+              ${finalPickButton}
               <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 검색으로 보기</a>
             </div>
           `;
@@ -3578,6 +3581,7 @@
             <iframe src="${escapeHtml(embed)}" title="${escapeHtml(`${song.title} - ${song.artist}`)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
           </div>
           <div class="song-actions">
+            ${finalPickButton}
             <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube에서 열기</a>
           </div>
         `;
@@ -6911,6 +6915,15 @@
           state.chordDraftDirty = true;
         });
         $("youtubePreview").addEventListener("click", (event) => {
+          const addButton = event.target.closest("[data-preview-add]");
+          if (addButton) {
+            const song = songByKey(addButton.dataset.previewAdd);
+            if (song) {
+              addSong(song);
+              renderYoutubePreview();
+            }
+            return;
+          }
           const button = event.target.closest("[data-save-youtube]");
           if (!button) return;
           saveYoutubeDirectUrl(button.dataset.saveYoutube, $("youtubeDirectInput")?.value || "");

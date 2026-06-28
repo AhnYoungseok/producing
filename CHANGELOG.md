@@ -18,6 +18,7 @@
 - Added an editable public-site chord design pad inside the composition plan, with local Web Audio chord playback and stop controls for auditioning revised progressions without using original-song audio.
 - Added a right-side public-site creation workspace that groups the creative brief, composition plan, chord editing, and audition controls into a structured desktop rail.
 - Added an in-page official YouTube preview panel with `현재 페이지에서 듣기` buttons on reference cards, candidate rows, and final-pick rows; direct video URLs render through YouTube's iframe player, while search-only rows show a safe fallback and a local direct-URL save field.
+- Added a final-pick action directly inside the in-page YouTube preview panel so users can listen first and immediately move the song into the final selected set.
 - Added public-site automatic chorus/hook candidate panels for each reference card, showing likely chorus windows, hook strength, lyric-structure hints, melody/rhythm cues, chord hints, creative-use notes, and confidence without storing full lyrics or extracting YouTube audio.
 - Added public-site selected-reference combination analysis with average BPM, common key, common chord family, hook type, mood, arrangement signals, conflict notes, and arrangement risk before generating the brief.
 - Added mood-coordinate recommendations to the public-site concept graph, mapping dark/bright and calm/intense drag values into BPM, key, chord color, hook style, arrangement, and brief tone.
@@ -74,6 +75,7 @@
 - Public-site local browser check passed for final-selected-only design behavior: no selected songs keeps the plan/chord editor empty, searched reference cards and type-matched candidate rows both add songs through `최종 선택곡에 담기`, and generated plans use the selected-song set.
 - Public-site local browser layout check passed: the creative brief/composition workspace renders as a right-side sticky rail on desktop, with no console errors and no literal `undefined`, `null`, or `NaN`.
 - Public-site local browser check passed for the YouTube preview fallback: preview buttons open the in-page panel, search-only rows show the direct-link input and YouTube search action, and no console errors occurred.
+- Public-site local browser check passed for preview-to-final-pick flow: `현재 페이지에서 듣기` opens the preview panel, `이 곡을 최종 선택곡에 담기` adds the song, disables itself as selected, updates the selected count, and activates the composition plan.
 - Public-site local HTTP browser check passed: 80 reference cards rendered, automatic hook panels and mood-coordinate recommendations were visible, no console errors were reported, and no literal `undefined`, `null`, or `NaN` appeared.
 - Public-site mood coordinate keyboard adjustment changed the creation brief in-browser without console errors.
 - Backend tests passed with `AUTO_REFERENCE_BATCH_ENABLED=false`: 27 tests.
