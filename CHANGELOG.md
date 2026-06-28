@@ -13,6 +13,8 @@
 ### Added
 
 - Added public-site visual graph panels for concept radar, current reference-library distributions, and selected-reference combination analysis so concept, genre, BPM, year, confidence, key, hook, and risk signals are visible at a glance.
+- Added a public-site candidate-to-final selection flow so type-matched 20-song recommendations and manually chosen references gather into one final-pick panel before brief/detail generation.
+- Added an editable public-site chord design pad inside the composition plan, with local Web Audio chord playback and stop controls for auditioning revised progressions without using original-song audio.
 - Added public-site automatic chorus/hook candidate panels for each reference card, showing likely chorus windows, hook strength, lyric-structure hints, melody/rhythm cues, chord hints, creative-use notes, and confidence without storing full lyrics or extracting YouTube audio.
 - Added public-site selected-reference combination analysis with average BPM, common key, common chord family, hook type, mood, arrangement signals, conflict notes, and arrangement risk before generating the brief.
 - Added mood-coordinate recommendations to the public-site concept graph, mapping dark/bright and calm/intense drag values into BPM, key, chord color, hook style, arrangement, and brief tone.
@@ -35,6 +37,7 @@
 ### Changed
 
 - Strengthened the public-site creation brief so it now includes selected-song combination analysis, automatic chorus/hook candidate analysis, and a 20-part composer brief ending with concrete 30-minute production instructions.
+- Changed public-site brief generation so final selected songs are the primary source for the detailed brief and composition plan, while type-matched songs remain a candidate pool until explicitly chosen.
 - Changed the public-site concept graph labels to the requested emotion-space model: dark to bright on the X axis and calm to intense on the Y axis, with keyboard arrow support in addition to mouse/touch drag.
 - Changed public-site reference cards so automatic hook candidates appear before the detailed analysis strip, making chorus/hook, chord, melody, rhythm, and accompaniment signals visible without opening every detail panel.
 - Optimized public-site concept selection so button state updates immediately while heavy recommendation and brief regeneration are debounced and cached.
@@ -62,6 +65,7 @@
 ### Verified
 
 - Public-site script syntax check passed with `node --check`.
+- Public-site local browser check passed for candidate pool creation, final-pick selection, detailed brief generation, editable chord plan updates, Web Audio chord playback/stop controls, and no console errors.
 - Public-site local HTTP browser check passed: 80 reference cards rendered, automatic hook panels and mood-coordinate recommendations were visible, no console errors were reported, and no literal `undefined`, `null`, or `NaN` appeared.
 - Public-site mood coordinate keyboard adjustment changed the creation brief in-browser without console errors.
 - Backend tests passed with `AUTO_REFERENCE_BATCH_ENABLED=false`: 27 tests.

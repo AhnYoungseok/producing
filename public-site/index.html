@@ -1350,6 +1350,45 @@
         margin-bottom: 12px;
       }
 
+      .final-pick-panel,
+      .candidate-pool {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .section-mini-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--teal-dark);
+        font-size: 13px;
+        font-weight: 950;
+      }
+
+      .candidate-pool-body {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        max-height: 420px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px;
+        background: #fbfdff;
+      }
+
+      .candidate-row {
+        display: grid;
+        gap: 7px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px;
+        background: #fff;
+      }
+
       .selected-insight {
         display: grid;
         gap: 8px;
@@ -1364,6 +1403,40 @@
         border: 1px solid var(--line);
         border-radius: 8px;
         padding: 9px;
+        background: #fbfdff;
+      }
+
+      .composer-editor {
+        display: grid;
+        gap: 8px;
+        border-top: 1px solid var(--line);
+        padding: 10px;
+        background: #fff;
+      }
+
+      .composer-editor textarea {
+        width: 100%;
+        min-height: 108px;
+        resize: vertical;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px;
+        background: #fbfdff;
+        color: var(--ink);
+        line-height: 1.45;
+      }
+
+      .composer-editor-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 92px;
+        gap: 8px;
+      }
+
+      .composer-editor-row input {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 9px;
         background: #fbfdff;
       }
 
@@ -1619,10 +1692,12 @@
         .concept-grid,
         .persona-grid,
         .candidate-grid,
+        .candidate-pool-body,
         .insight-grid,
         .mood-recommendation-grid,
         .graph-grid,
-        .radar-wrap {
+        .radar-wrap,
+        .composer-editor-row {
           grid-template-columns: 1fr;
         }
 
@@ -1721,8 +1796,15 @@
               </div>
               <div id="conceptHints" class="concept-hints"></div>
             </div>
-            <div id="selectedList" class="selected-list"></div>
-            <div id="selectedInsight" class="selected-insight"></div>
+            <div id="candidatePool" class="candidate-pool"></div>
+            <section class="final-pick-panel" aria-label="최종 선택곡">
+              <div class="section-mini-head">
+                <span>최종 선택곡</span>
+                <span class="small">후보곡이나 참고곡에서 고른 곡만 브리프/작곡 설계에 반영됩니다.</span>
+              </div>
+              <div id="selectedList" class="selected-list"></div>
+              <div id="selectedInsight" class="selected-insight"></div>
+            </section>
             <div class="stack">
               <textarea id="ideaInput" placeholder="내 곡 키워드: 예) 밤 산책, 후회 없는 이별, 120 BPM 댄스팝"></textarea>
               <div class="action-row">
@@ -1752,6 +1834,21 @@
                   </div>
                 </div>
                 <div id="songPlanBody" class="song-plan-body"></div>
+                <div class="composer-editor" aria-label="코드 진행 수정 및 청음">
+                  <div>
+                    <div class="recipe-title">코드 진행 수정 / 청음</div>
+                    <div class="small">아래 코드를 계속 고치고 `코드 재생`으로 간단한 피아노 톤을 들어봅니다. 원곡 오디오는 사용하지 않습니다.</div>
+                  </div>
+                  <div class="composer-editor-row">
+                    <textarea id="chordEditor" placeholder="예) | Cadd9 | G/B | Am7 | Fadd9 |"></textarea>
+                    <input id="chordBpmInput" inputmode="numeric" placeholder="BPM" value="86" />
+                  </div>
+                  <div class="song-actions">
+                    <button id="applyChordDraftButton" class="secondary" type="button">설계에 반영</button>
+                    <button id="playChordDraftButton" type="button">코드 재생</button>
+                    <button id="stopChordDraftButton" class="ghost" type="button">정지</button>
+                  </div>
+                </div>
               </aside>
             </div>
             <p class="small">
@@ -1862,15 +1959,20 @@
       const CONCEPT_KEY = "hit-song-lab-concept-v1";
       const ANALYSIS_EDIT_KEY = "hit-song-lab-analysis-edits-v1";
       const LAST_BRIEF_KEY = "hit-song-lab-last-brief-v1";
+      const CHORD_DRAFT_KEY = "hit-song-lab-chord-draft-v1";
 
       const state = {
         ledger: null,
         songs: [],
         filtered: [],
         selected: [],
+        candidates: [],
         conceptSelections: {},
         axisOverrides: {},
         analysisEdits: {},
+        chordDraft: "",
+        chordDraftDirty: false,
+        chordAudio: null,
         conceptWorkTimer: 0,
         conceptCache: new Map(),
         activePreset: "hit",
@@ -3156,6 +3258,7 @@
         if (!isSelected(song)) {
           state.selected.push(song);
           saveSelection();
+          renderCandidatePool();
           renderSelection();
           renderSongs();
           buildRecipe();
@@ -3165,6 +3268,7 @@
       function removeSong(key) {
         state.selected = state.selected.filter((song) => identity(song) !== key);
         saveSelection();
+        renderCandidatePool();
         renderSelection();
         renderSongs();
         buildRecipe();
@@ -3178,8 +3282,7 @@
         try {
           const saved = localStorage.getItem(SELECTION_KEY);
           if (saved === null) {
-            state.selected = state.songs.slice(0, Math.min(3, state.songs.length));
-            saveSelection();
+            state.selected = [];
             return;
           }
           const keys = new Set(JSON.parse(saved || "[]"));
@@ -3314,7 +3417,7 @@
                   ${analysisEditForm(song, key)}
                 </details>
                 <div class="song-actions">
-                  <button type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "담김" : "참고 추가"}</button>
+                  <button type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 선택됨" : "최종 선택"}</button>
                   <button class="secondary" type="button" data-auto-analysis="${escapeHtml(key)}">AI 5축 분석 초안</button>
                   <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
                 </div>
@@ -3659,7 +3762,7 @@
         $("selectedCountMetric").textContent = number(state.selected.length);
         const list = $("selectedList");
         if (!state.selected.length) {
-          list.innerHTML = `<div class="empty">참고곡을 담아 조합을 시작합니다.</div>`;
+          list.innerHTML = `<div class="empty">아직 최종 선택곡이 없습니다. 후보곡이나 참고곡 카드에서 ` + "`최종 선택`" + `을 눌러 이곳에 모으세요.</div>`;
           renderSelectedInsight([]);
           return;
         }
@@ -3687,12 +3790,11 @@
 
       function chooseRandom() {
         const pool = conceptReferenceSongs(20);
-        state.selected = pool.slice(0, Math.min(20, pool.length));
-        saveSelection();
-        renderSelection();
+        state.candidates = pool.slice(0, Math.min(20, pool.length));
+        renderCandidatePool();
         renderSongs();
         buildRecipe();
-        setStatus("유형 맞춤 히트곡 20곡 적용");
+        setStatus("유형 맞춤 후보곡 20곡 생성됨 - 최종 선택곡을 골라주세요");
       }
 
       function randomPick(items, count = 1) {
@@ -4308,8 +4410,9 @@
       function referenceSongsForBrief() {
         const baseHits = sortByHitPriority(state.filtered.length ? state.filtered : state.songs).slice(0, 20);
         const auto = hasConceptSeed() ? conceptReferenceSongs(20) : baseHits;
-        if (hasConceptSeed()) return mergeUniqueSongs([...state.selected, ...auto]).slice(0, 20);
-        if (state.selected.length) return sortByHitPriority(mergeUniqueSongs([...state.selected, ...baseHits])).slice(0, 20);
+        if (state.selected.length) return sortByHitPriority(state.selected).slice(0, 20);
+        if (state.candidates.length) return state.candidates.slice(0, 20);
+        if (hasConceptSeed()) return auto.slice(0, 20);
         return baseHits;
       }
 
@@ -5751,6 +5854,127 @@
           .join("\n");
       }
 
+      function defaultEditableChords(songs) {
+        const palette = harmonyPalette(songs);
+        return palette.chorus.join("\n");
+      }
+
+      function currentChordDraft(songs = referenceSongsForBrief()) {
+        return state.chordDraft || defaultEditableChords(songs);
+      }
+
+      function loadChordDraft() {
+        state.chordDraft = localStorage.getItem(CHORD_DRAFT_KEY) || "";
+        state.chordDraftDirty = Boolean(state.chordDraft);
+      }
+
+      function saveChordDraft(value) {
+        state.chordDraft = String(value || "").trim();
+        state.chordDraftDirty = Boolean(state.chordDraft);
+        if (state.chordDraft) localStorage.setItem(CHORD_DRAFT_KEY, state.chordDraft);
+        else localStorage.removeItem(CHORD_DRAFT_KEY);
+      }
+
+      function syncChordEditor(songs = referenceSongsForBrief(), force = false) {
+        const editor = $("chordEditor");
+        if (!editor) return;
+        if (force || !state.chordDraftDirty || !editor.value.trim()) {
+          editor.value = currentChordDraft(songs);
+        }
+        const bpmInput = $("chordBpmInput");
+        if (bpmInput && !bpmInput.value.trim()) {
+          bpmInput.value = String(averageBpmNumber(songs) || 86);
+        }
+      }
+
+      function applyChordDraft() {
+        const editor = $("chordEditor");
+        if (!editor) return;
+        saveChordDraft(editor.value);
+        renderSongPlan(referenceSongsForBrief());
+        setStatus("수정한 코드 진행이 작곡 설계에 반영됨");
+      }
+
+      function midiFrequency(midi) {
+        return 440 * Math.pow(2, (midi - 69) / 12);
+      }
+
+      function chordMidiNotes(symbol) {
+        const chord = parseChordSymbol(symbol);
+        if (!chord) return [];
+        const pc = pitchClass(chord.root);
+        if (pc === undefined) return [];
+        const suffix = chord.suffix || "";
+        const minor = /^m(?!aj)/i.test(suffix);
+        const dim = /dim|ø|m7b5/i.test(suffix);
+        const aug = /aug|\+5/i.test(suffix);
+        const intervals = dim ? [0, 3, 6] : aug ? [0, 4, 8] : minor ? [0, 3, 7] : [0, 4, 7];
+        if (/maj7/i.test(suffix)) intervals.push(11);
+        else if (/(^|[^a-z])7|m7|min7|13|9/i.test(suffix)) intervals.push(10);
+        if (/9|add9/i.test(suffix)) intervals.push(14);
+        const base = 48 + pc;
+        return intervals.map((interval) => base + interval);
+      }
+
+      function stopChordPlayback() {
+        if (state.chordAudio?.timeout) window.clearTimeout(state.chordAudio.timeout);
+        try {
+          state.chordAudio?.context?.close();
+        } catch {
+          // Ignore already-closed contexts.
+        }
+        state.chordAudio = null;
+        setStatus("코드 재생 정지");
+      }
+
+      function playChordDraft() {
+        const editor = $("chordEditor");
+        if (!editor) return;
+        const chords = chordTokens(editor.value).filter((token) => parseChordSymbol(token)).slice(0, 32);
+        if (!chords.length) {
+          setStatus("재생할 코드가 없습니다", true);
+          return;
+        }
+        stopChordPlayback();
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          setStatus("이 브라우저는 코드 청음을 지원하지 않습니다", true);
+          return;
+        }
+        const context = new AudioContextClass();
+        const bpm = numericValue($("chordBpmInput")?.value, averageBpmNumber(referenceSongsForBrief()) || 86);
+        const chordDuration = Math.max(0.72, (60 / Math.max(40, bpm)) * 2);
+        const master = context.createGain();
+        master.gain.setValueAtTime(0.0001, context.currentTime);
+        master.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.03);
+        master.connect(context.destination);
+        chords.forEach((symbol, index) => {
+          const start = context.currentTime + index * chordDuration;
+          const end = start + chordDuration * 0.88;
+          const gain = context.createGain();
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.16, start + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0001, end);
+          gain.connect(master);
+          chordMidiNotes(symbol).forEach((midi, noteIndex) => {
+            const osc = context.createOscillator();
+            osc.type = noteIndex ? "triangle" : "sine";
+            osc.frequency.setValueAtTime(midiFrequency(midi), start);
+            osc.connect(gain);
+            osc.start(start);
+            osc.stop(end + 0.04);
+          });
+        });
+        state.chordAudio = {
+          context,
+          timeout: window.setTimeout(() => {
+            stopChordPlayback();
+            setStatus("코드 재생 완료");
+          }, chords.length * chordDuration * 1000 + 300),
+        };
+        setStatus(`코드 재생 중 · ${chords.length}개`);
+      }
+
       function renderSongPlan(songs = referenceSongsForBrief()) {
         const body = $("songPlanBody");
         if (!body) return;
@@ -5781,8 +6005,9 @@
                   <div class="plan-card-value">${escapeHtml(card.value)}</div>
                 </section>
               `
-            )
+          )
             .join("");
+          syncChordEditor(songs);
           return;
         }
 
@@ -5808,6 +6033,7 @@
         const productionSet = shortList(songs.map((song) => accompanimentInfo(song).build || accompanimentInfo(song).method), 4);
         const rhythmSet = shortList(songs.map((song) => rhythmInfo(song).pattern || rhythmInfo(song).hook), 4);
         const referenceRows = planReferenceRows(songs, 4) || "참고곡 코드진행 분석 필요";
+        const editableChords = currentChordDraft(songs);
         const cards = [
           {
             title: "창작곡 구조",
@@ -5825,6 +6051,9 @@
           {
             title: "코드진행",
             value: [
+              "사용자 수정 코드:",
+              editableChords,
+              "",
               `중심키: ${palette.key || inferKeyCenter(songs)}`,
               `화성 팔레트: ${palette.name}`,
               "Verse:",
@@ -5872,6 +6101,7 @@
             `
           )
           .join("");
+        syncChordEditor(songs);
       }
 
       function autoHookCandidateRows(songs, limit = 6) {
@@ -5958,7 +6188,21 @@
           $("recipeBody").textContent = [
             conceptBrief(songs),
             "",
-            "데이터가 로딩되면 유형에 맞는 히트곡을 자동으로 찾아 컨셉을 코드/구조/후크 설계로 확장합니다.",
+            "유형 맞춤 후보곡이나 참고곡에서 최종 선택곡을 먼저 골라주세요.",
+          ].join("\n");
+          renderSongPlan(songs);
+          renderConceptHints();
+          return;
+        }
+
+        if (!state.selected.length) {
+          $("recipeBody").textContent = [
+            conceptBrief(songs),
+            "",
+            "[다음 순서]",
+            "1. 유형 맞춤 후보곡 20곡 또는 참고곡 찾기 목록에서 `최종 선택`을 누릅니다.",
+            "2. 아래 `최종 선택곡`에 모인 곡만 브리프와 작곡 설계 기준이 됩니다.",
+            "3. 최종 선택곡을 고른 뒤 `브리프 상세 생성`을 누르세요.",
           ].join("\n");
           renderSongPlan(songs);
           renderConceptHints();
@@ -6105,6 +6349,41 @@
         }
       }
 
+      function renderCandidatePool() {
+        const target = $("candidatePool");
+        if (!target) return;
+        if (!state.candidates.length) {
+          target.innerHTML = "";
+          return;
+        }
+        const rows = state.candidates
+          .map((song) => {
+            const key = identity(song);
+            const selected = isSelected(song);
+            const youtube = youtubeUrl(song);
+            return `
+              <div class="candidate-row">
+                <div>
+                  <div class="selected-title">${escapeHtml(song.title)}</div>
+                  <div class="selected-meta">${escapeHtml(song.artist)} · ${escapeHtml(song.genre || "-")} · ${escapeHtml(song.bpm || "-")} BPM · ${escapeHtml(song.key || "Key 미입력")}</div>
+                </div>
+                <div class="selected-actions">
+                  <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
+                  <button type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 선택됨" : "최종 선택"}</button>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+        target.innerHTML = `
+          <div class="section-mini-head">
+            <span>유형 맞춤 후보곡 20</span>
+            <span class="small">여기서 고른 곡만 아래 최종 선택곡에 모입니다.</span>
+          </div>
+          <div class="candidate-pool-body">${rows}</div>
+        `;
+      }
+
       async function copyRecipe() {
         return copyRecipePart("all");
       }
@@ -6229,6 +6508,12 @@
           if (!button) return;
           applyPreset(button.dataset.preset);
         });
+        $("candidatePool").addEventListener("click", (event) => {
+          const button = event.target.closest("[data-add]");
+          if (!button) return;
+          const song = songByKey(button.dataset.add);
+          if (song) addSong(song);
+        });
         $("sortChips").addEventListener("click", (event) => {
           const button = event.target.closest("[data-sort]");
           if (!button) return;
@@ -6269,6 +6554,7 @@
           state.selected = [];
           saveSelection();
           localStorage.removeItem(LAST_BRIEF_KEY);
+          renderCandidatePool();
           renderSelection();
           renderSongs();
           buildRecipe();
@@ -6280,6 +6566,12 @@
         $("copyChordButton").addEventListener("click", () => copyRecipePart("chords"));
         $("copyHookButton").addEventListener("click", () => copyRecipePart("hooks"));
         $("copyTaskButton").addEventListener("click", () => copyRecipePart("task"));
+        $("applyChordDraftButton").addEventListener("click", applyChordDraft);
+        $("playChordDraftButton").addEventListener("click", playChordDraft);
+        $("stopChordDraftButton").addEventListener("click", stopChordPlayback);
+        $("chordEditor").addEventListener("input", () => {
+          state.chordDraftDirty = true;
+        });
         ["conceptInput", "ideaInput"].forEach((id) => {
           $(id).addEventListener("input", () => {
             saveConceptState();
@@ -6308,6 +6600,7 @@
           renderMetrics(ledger);
           renderChips();
           renderSongs();
+          renderCandidatePool();
           renderSelection();
           renderConceptHints();
           buildRecipe();
@@ -6320,6 +6613,7 @@
       }
 
       fillStaticSelect("bpmFilter", bpmBuckets);
+      loadChordDraft();
       renderConceptBoard();
       updateConceptSelectionText();
       wireEvents();
