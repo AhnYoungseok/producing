@@ -1789,6 +1789,28 @@
         font-weight: 950;
       }
 
+      .plan-chord-cell {
+        display: grid;
+        gap: 7px;
+      }
+
+      .part-play-button {
+        width: fit-content;
+        min-height: 30px;
+        border: 1px solid #74c69d;
+        border-radius: 999px;
+        padding: 5px 10px;
+        background: #ecfff3;
+        color: #14532d;
+        font-size: 12px;
+        font-weight: 950;
+        cursor: pointer;
+      }
+
+      .part-play-button:hover {
+        background: #d8f8e4;
+      }
+
       .plan-meter-grid {
         display: grid;
         gap: 8px;
@@ -6499,10 +6521,8 @@
         setStatus("코드 재생 정지");
       }
 
-      function playChordDraft() {
-        const editor = $("chordEditor");
-        if (!editor) return;
-        const chords = chordTokens(editor.value).filter((token) => parseChordSymbol(token)).slice(0, 32);
+      function playChordText(rawText, label = "코드") {
+        const chords = chordTokens(rawText).filter((token) => parseChordSymbol(token)).slice(0, 32);
         if (!chords.length) {
           setStatus("재생할 코드가 없습니다", true);
           return;
@@ -6570,7 +6590,13 @@
             setStatus("코드 재생 완료");
           }, chords.length * chordDuration * 1000 + 300),
         };
-        setStatus(`코드 재생 중 · ${chords.length}개`);
+        setStatus(`${label} 재생 중 · ${chords.length}개`);
+      }
+
+      function playChordDraft() {
+        const editor = $("chordEditor");
+        if (!editor) return;
+        playChordText(editor.value, "핵심 코드");
       }
 
       function renderSongPlan(songs = referenceSongsForBrief()) {
@@ -6590,6 +6616,11 @@
             )
             .join("");
 
+        const chordPlayButton = (row) =>
+          row.chords
+            ? `<button class="part-play-button" type="button" data-play-section="${escapeHtml(encodeURIComponent(row.part))}" data-play-section-chords="${escapeHtml(encodeURIComponent(row.chords))}">이 파트 듣기</button>`
+            : "";
+
         const planTable = (rows) => `
           <table class="plan-table">
             <thead>
@@ -6605,7 +6636,12 @@
                   (row) => `
                     <tr>
                       <td>${escapeHtml(row.part)}</td>
-                      <td>${escapeHtml(row.design)}</td>
+                      <td>
+                        <div class="plan-chord-cell">
+                          <span>${escapeHtml(row.design)}</span>
+                          ${chordPlayButton(row)}
+                        </div>
+                      </td>
                       <td>${escapeHtml(row.basis)}</td>
                     </tr>
                   `
@@ -6708,10 +6744,10 @@
           { part: "Bridge", design: "시점 전환과 borrowed/secondary dominant 1회", basis: palette.goal },
         ];
         const chordTable = [
-          { part: "Verse", design: palette.verse.join(" "), basis: "도입 감정/장면 구축" },
-          { part: "Pre", design: palette.pre.join(" "), basis: "후렴 전 긴장 상승" },
-          { part: "Chorus", design: palette.chorus.join(" "), basis: "제목 훅과 해상 지점" },
-          { part: "Bridge", design: palette.bridge.join(" "), basis: "관점 전환/마지막 후렴 진입" },
+          { part: "Verse", design: palette.verse.join(" "), chords: palette.verse.join(" "), basis: "도입 감정/장면 구축" },
+          { part: "Pre", design: palette.pre.join(" "), chords: palette.pre.join(" "), basis: "후렴 전 긴장 상승" },
+          { part: "Chorus", design: palette.chorus.join(" "), chords: palette.chorus.join(" "), basis: "제목 훅과 해상 지점" },
+          { part: "Bridge", design: palette.bridge.join(" "), chords: palette.bridge.join(" "), basis: "관점 전환/마지막 후렴 진입" },
         ];
         const cards = [
           {
@@ -7074,6 +7110,13 @@
         $("applyChordDraftButton").addEventListener("click", applyChordDraft);
         $("playChordDraftButton").addEventListener("click", playChordDraft);
         $("stopChordDraftButton").addEventListener("click", stopChordPlayback);
+        $("songPlanBody").addEventListener("click", (event) => {
+          const button = event.target.closest("[data-play-section-chords]");
+          if (!button) return;
+          const part = decodeURIComponent(button.dataset.playSection || "파트");
+          const chords = decodeURIComponent(button.dataset.playSectionChords || "");
+          playChordText(chords, part);
+        });
         $("chordEditor").addEventListener("input", () => {
           state.chordDraftDirty = true;
           renderChordVoicePreview();
