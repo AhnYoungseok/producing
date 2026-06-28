@@ -309,7 +309,7 @@
       }
 
       .brief-layout .selected-list {
-        max-height: 420px;
+        max-height: 260px;
         overflow-y: auto;
         overscroll-behavior: contain;
       }
@@ -1763,16 +1763,30 @@
       }
 
       .song-plan {
-        border: 2px solid #74c69d;
-        border-radius: 12px;
-        background: linear-gradient(180deg, #e9f8ef, #f5fff8 42%, #ffffff);
+        border: 3px solid #34a853;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #dff8e8, #f4fff7 34%, #ffffff);
         overflow: hidden;
-        box-shadow: inset 0 0 0 1px rgba(116, 198, 157, 0.18), 0 10px 24px rgba(34, 101, 70, 0.08);
+        box-shadow: inset 0 0 0 1px rgba(52, 168, 83, 0.22), 0 18px 34px rgba(34, 101, 70, 0.16);
       }
 
       .song-plan .recipe-head {
-        background: linear-gradient(90deg, #d9f4e4, #f4fff7);
-        border-bottom-color: #a6dcb9;
+        background: linear-gradient(90deg, #c8f1d6, #f3fff6);
+        border-bottom: 2px solid #8fd7a7;
+        padding: 13px 14px;
+      }
+
+      .song-plan .recipe-title {
+        color: #14532d;
+        font-size: 20px;
+        line-height: 1.15;
+      }
+
+      .song-plan .small {
+        margin-top: 4px;
+        color: #2f6b43;
+        font-size: 12px;
+        font-weight: 850;
       }
 
       .recipe-head {
@@ -1799,32 +1813,32 @@
       .song-plan-body {
         display: grid;
         gap: 12px;
-        padding: 12px;
-        min-height: 760px;
+        padding: 14px;
+        min-height: 940px;
         max-height: none;
         overflow-y: visible;
         overscroll-behavior: contain;
       }
 
       .plan-card {
-        border: 1px solid #a6dcb9;
+        border: 1px solid #96d9ad;
         border-radius: 10px;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.9);
+        padding: 13px;
+        background: rgba(255, 255, 255, 0.96);
         box-shadow: 0 8px 18px rgba(34, 101, 70, 0.06);
       }
 
       .plan-card-title {
         color: var(--teal-dark);
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 950;
       }
 
       .plan-card-value {
-        margin-top: 6px;
+        margin-top: 7px;
         color: var(--ink);
-        font-size: 13px;
-        line-height: 1.45;
+        font-size: 13.5px;
+        line-height: 1.52;
         white-space: pre-wrap;
       }
 
@@ -2275,14 +2289,23 @@
             <div class="brief-layout">
               <div class="creation-rail-head">
                 <div class="creation-rail-title">창작 작업대</div>
-                <div class="small">최종 선택곡 통계로 핵심 코드진행을 만들고, 바로 아래에서 파트별로 수정·청음합니다.</div>
+                <div class="small">가장 중요한 결과물은 바로 아래 작곡 설계 요약입니다. 최종 선택곡 통계와 수정 코드진행이 이 설계에 즉시 반영됩니다.</div>
                 <div class="creation-rail-flow" aria-label="창작 작업 흐름">
                   <span>1 최종곡</span>
-                  <span>2 핵심 코드진행</span>
-                  <span>3 진행 수정</span>
-                  <span>4 정확 청음</span>
+                  <span>2 설계 요약</span>
+                  <span>3 코드진행 수정</span>
+                  <span>4 청음/검산</span>
                 </div>
               </div>
+              <aside class="song-plan" aria-label="작곡 설계 요약">
+                <div class="recipe-head">
+                  <div>
+                    <div class="recipe-title">작곡 설계 요약</div>
+                    <div class="small">최우선 작업대 · 구조 · 핵심 코드진행 · 보이싱 · 반주 악기</div>
+                  </div>
+                </div>
+                <div id="songPlanBody" class="song-plan-body"></div>
+              </aside>
               <section class="final-pick-panel" aria-label="최종 선택곡">
                 <div class="section-mini-head">
                   <span>최종 선택곡</span>
@@ -2292,15 +2315,6 @@
                 <div id="selectedList" class="selected-list"></div>
                 <div id="selectedInsight" class="selected-insight"></div>
               </section>
-              <aside class="song-plan" aria-label="작곡 설계 요약">
-                <div class="recipe-head">
-                  <div>
-                    <div class="recipe-title">작곡 설계 요약</div>
-                    <div class="small">구조 · 핵심 코드진행 · 보이싱 · 반주 악기</div>
-                  </div>
-                </div>
-                <div id="songPlanBody" class="song-plan-body"></div>
-              </aside>
               <div id="youtubePreview" class="youtube-preview empty">곡 카드의 미리듣기 버튼을 누르면 공식 YouTube 임베드 또는 링크 등록 패널이 이 자리에 열립니다.</div>
             </div>
             <p class="small">
