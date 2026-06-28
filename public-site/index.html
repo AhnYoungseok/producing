@@ -288,6 +288,13 @@
         align-items: flex-start;
       }
 
+      .concept-head-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 6px;
+      }
+
       .eyebrow {
         color: var(--teal-dark);
         font-size: 12px;
@@ -1367,6 +1374,10 @@
           display: grid;
         }
 
+        .concept-head-actions {
+          justify-content: flex-start;
+        }
+
         .concept-note {
           text-align: left;
         }
@@ -1398,8 +1409,11 @@
                   <div class="eyebrow">1. 컨셉 먼저</div>
                   <h3 class="concept-title">말투, 시점, 지금 하고 싶은 말을 먼저 잡습니다.</h3>
                 </div>
-                <div class="concept-note">최신 차트 감각 + 입체적인 태도 + 히트곡 데이터</div>
-                <button id="clearConceptButton" class="ghost" type="button">컨셉 초기화</button>
+                <div class="concept-head-actions">
+                  <div class="concept-note">최신 차트 감각 + 입체적인 태도 + 히트곡 데이터</div>
+                  <button id="randomConceptButton" class="secondary" type="button">컨셉 랜덤</button>
+                  <button id="clearConceptButton" class="ghost" type="button">컨셉 초기화</button>
+                </div>
               </div>
               <div id="conceptBoard" class="concept-board"></div>
               <div class="concept-selection">
@@ -1423,7 +1437,7 @@
               <textarea id="ideaInput" placeholder="내 곡 키워드: 예) 밤 산책, 후회 없는 이별, 120 BPM 댄스팝"></textarea>
               <div class="action-row">
                 <button id="randomButton" class="secondary" type="button">유형 맞춤 20곡</button>
-                <button id="recipeButton" type="button">브리프 생성</button>
+                <button id="recipeButton" type="button">브리프 상세 생성</button>
               </div>
             </div>
             <div class="brief-layout">
@@ -3168,6 +3182,33 @@
         renderSongs();
         buildRecipe();
         setStatus("유형 맞춤 히트곡 20곡 적용");
+      }
+
+      function randomPick(items, count = 1) {
+        const pool = [...items];
+        const picked = [];
+        while (pool.length && picked.length < count) {
+          const index = Math.floor(Math.random() * pool.length);
+          picked.push(pool.splice(index, 1)[0]);
+        }
+        return picked;
+      }
+
+      function randomizeConcept() {
+        const next = {};
+        conceptCategories.forEach((category) => {
+          const max = Math.max(1, Number(category.max || 1));
+          const count = max === 1 ? 1 : 1 + Math.floor(Math.random() * max);
+          next[category.id] = randomPick(category.options, count);
+        });
+        state.conceptSelections = next;
+        state.axisOverrides = {};
+        clearConceptCache();
+        renderConceptBoard();
+        updateConceptSelectionText();
+        saveConceptState();
+        buildRecipe();
+        setStatus("랜덤 컨셉 적용됨");
       }
 
       function commonValue(songs, mapper, fallback = "-") {
@@ -5227,6 +5268,7 @@
           toggleConcept(button.dataset.conceptCategory, button.dataset.conceptValue);
         });
         $("clearConceptButton").addEventListener("click", clearConceptSelections);
+        $("randomConceptButton").addEventListener("click", randomizeConcept);
         $("archetypeCard").addEventListener("pointerdown", handlePersonaPointerDown);
 
         ["searchInput", "countryFilter", "genreFilter", "bpmFilter", "hookFilter", "confidenceFilter"].forEach((id) => {
