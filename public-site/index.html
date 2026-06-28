@@ -280,17 +280,18 @@
         grid-column: 2;
         grid-row: 1 / span 6;
         grid-template-columns: 1fr;
-        gap: 10px;
+        gap: 14px;
         align-items: start;
         position: sticky;
         top: 14px;
-        max-height: calc(100vh - 28px);
+        min-height: calc(100vh - 28px);
+        max-height: none;
         overflow-y: auto;
         overscroll-behavior: contain;
         margin-top: 0;
         border: 1px solid var(--line-strong);
-        border-radius: 10px;
-        padding: 10px;
+        border-radius: 12px;
+        padding: 12px;
         background: linear-gradient(180deg, #f1fbfa, #fbfdff 34%, #fff);
         box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
       }
@@ -308,14 +309,14 @@
       }
 
       .brief-layout .selected-list {
-        max-height: min(24vh, 260px);
+        max-height: 420px;
         overflow-y: auto;
         overscroll-behavior: contain;
       }
 
       .brief-layout .selected-insight {
-        max-height: min(24vh, 260px);
-        overflow-y: auto;
+        max-height: none;
+        overflow-y: visible;
         overscroll-behavior: contain;
         margin-bottom: 0;
       }
@@ -1700,10 +1701,16 @@
       }
 
       .song-plan {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #fbfdff;
+        border: 2px solid #74c69d;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #e9f8ef, #f5fff8 42%, #ffffff);
         overflow: hidden;
+        box-shadow: inset 0 0 0 1px rgba(116, 198, 157, 0.18), 0 10px 24px rgba(34, 101, 70, 0.08);
+      }
+
+      .song-plan .recipe-head {
+        background: linear-gradient(90deg, #d9f4e4, #f4fff7);
+        border-bottom-color: #a6dcb9;
       }
 
       .recipe-head {
@@ -1729,18 +1736,20 @@
 
       .song-plan-body {
         display: grid;
-        gap: 9px;
-        padding: 10px;
-        max-height: min(34vh, 430px);
-        overflow-y: auto;
+        gap: 12px;
+        padding: 12px;
+        min-height: 760px;
+        max-height: none;
+        overflow-y: visible;
         overscroll-behavior: contain;
       }
 
       .plan-card {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 10px;
-        background: #fff;
+        border: 1px solid #a6dcb9;
+        border-radius: 10px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 8px 18px rgba(34, 101, 70, 0.06);
       }
 
       .plan-card-title {
@@ -1757,6 +1766,59 @@
         white-space: pre-wrap;
       }
 
+      .plan-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        overflow: hidden;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+
+      .plan-table th,
+      .plan-table td {
+        border: 1px solid #c8ead4;
+        padding: 7px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .plan-table th {
+        background: #dff7e9;
+        color: #166534;
+        font-weight: 950;
+      }
+
+      .plan-meter-grid {
+        display: grid;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .plan-meter-row {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr) 44px;
+        gap: 8px;
+        align-items: center;
+        color: #14532d;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .plan-meter {
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #d8efe1;
+      }
+
+      .plan-meter span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #74c69d, #1b9aaa);
+      }
+
       .recipe-body {
         max-height: min(34vh, 430px);
         overflow-y: auto;
@@ -1766,6 +1828,12 @@
         color: var(--ink);
         font-size: 13px;
         line-height: 1.48;
+      }
+
+      .brief-layout .recipe-body {
+        min-height: 840px;
+        max-height: none;
+        overflow-y: visible;
       }
 
       .small {
@@ -1868,7 +1936,9 @@
         }
 
         .song-plan-body {
+          min-height: 520px;
           max-height: 72vh;
+          overflow-y: auto;
         }
 
         .reference-panel .song-grid {
@@ -4221,8 +4291,10 @@
         state.conceptSelections = next;
         state.axisOverrides = {};
         clearConceptCache();
+        state.candidates = conceptReferenceSongs(20);
         renderConceptBoard();
         updateConceptSelectionText();
+        renderCandidatePool();
         saveConceptState();
         buildRecipe();
         setStatus("랜덤 컨셉 적용됨");
@@ -5525,6 +5597,7 @@
         window.clearTimeout(state.conceptWorkTimer);
         state.conceptWorkTimer = window.setTimeout(() => {
           state.conceptWorkTimer = 0;
+          if (!state.candidates.length) renderCandidatePool();
           buildRecipe();
           saveConceptState();
           setStatus("컨셉 반영됨");
@@ -5545,6 +5618,7 @@
           current.push(value);
         }
         state.conceptSelections[categoryId] = current;
+        state.candidates = [];
         updateConceptSelectionText();
         syncConceptButtonStates(categoryId);
         saveConceptState();
@@ -5554,10 +5628,12 @@
       function clearConceptSelections() {
         state.conceptSelections = {};
         state.axisOverrides = {};
+        state.candidates = [];
         $("conceptInput").value = "";
         $("ideaInput").value = "";
         updateConceptSelectionText();
         renderConceptBoard();
+        renderCandidatePool();
         saveConceptState();
         scheduleConceptOutputs(0);
       }
@@ -6378,8 +6454,62 @@
         const body = $("songPlanBody");
         if (!body) return;
 
+        const renderPlanCards = (cards) =>
+          cards
+            .map(
+              (card) => `
+                <section class="plan-card">
+                  <div class="plan-card-title">${escapeHtml(card.title)}</div>
+                  <div class="plan-card-value">${escapeHtml(card.value)}</div>
+                  ${card.extra || ""}
+                </section>
+              `
+            )
+            .join("");
+
+        const planTable = (rows) => `
+          <table class="plan-table">
+            <thead>
+              <tr>
+                <th>파트</th>
+                <th>설계</th>
+                <th>근거</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows
+                .map(
+                  (row) => `
+                    <tr>
+                      <td>${escapeHtml(row.part)}</td>
+                      <td>${escapeHtml(row.design)}</td>
+                      <td>${escapeHtml(row.basis)}</td>
+                    </tr>
+                  `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
+
+        const planMeters = (items) => `
+          <div class="plan-meter-grid" aria-label="작곡 설계 그래프">
+            ${items
+              .map(
+                (item) => `
+                  <div class="plan-meter-row">
+                    <span>${escapeHtml(item.label)}</span>
+                    <div class="plan-meter"><span style="width:${clamp(item.value)}%"></span></div>
+                    <span>${Math.round(clamp(item.value))}</span>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+        `;
+
         if (!songs.length) {
-          body.innerHTML = [
+          const waitingCards = [
             {
               title: "작곡 설계 대기",
               value: "후보곡이나 검색 결과에서 `최종 선택곡에 담기`를 눌러 곡을 모으세요. 최종 선택곡이 없으면 작곡 설계는 생성하지 않습니다.",
@@ -6395,17 +6525,14 @@
             {
               title: "코드 청음",
               value: "최종 선택곡을 고른 뒤 생성된 코드 설계를 수정하고 들을 수 있습니다. 선택 전에는 이전 코드나 임시 코드를 표시하지 않습니다.",
+              extra: planTable([
+                { part: "1", design: "유형 맞춤 후보곡 20 생성", basis: "컨셉 좌표와 선택 도형" },
+                { part: "2", design: "최종 선택곡 담기", basis: "선택곡만 분석/통계 기준" },
+                { part: "3", design: "브리프 상세 생성", basis: "코드/후크/멜로디/가사/편곡 통합" },
+              ]),
             },
-          ]
-            .map(
-              (card) => `
-                <section class="plan-card">
-                  <div class="plan-card-title">${escapeHtml(card.title)}</div>
-                  <div class="plan-card-value">${escapeHtml(card.value)}</div>
-                </section>
-              `
-            )
-            .join("");
+          ];
+          body.innerHTML = renderPlanCards(waitingCards);
           const editor = $("chordEditor");
           if (editor) {
             editor.value = "";
@@ -6416,35 +6543,6 @@
             bpmInput.value = "";
             bpmInput.placeholder = "선택곡 BPM";
           }
-          return;
-          body.innerHTML = [
-            {
-              title: "창작곡 구조",
-              value: "참고곡을 담거나 유형 맞춤 20곡을 누르면 Intro, Verse, Pre-Chorus, Chorus, Bridge, Outro 설계가 여기 따로 정리됩니다.",
-            },
-            {
-              title: "코드진행",
-              value: "추천곡의 코드/키/BPM/Roman numeral 신호를 읽어 새 곡용 진행으로 변형합니다.",
-            },
-            {
-              title: "핵심가사",
-              value: "브리프 생성 후 후렴 첫 줄, 제목 큐, 반복 문장 후보를 바로 볼 수 있습니다.",
-            },
-            {
-              title: "반주 악기 추천",
-              value: "피아노, 기타, 스트링, 드럼 빌드업, 신스/패드 등 참고곡 통계 기반 반주 방향을 분리해서 보여줍니다.",
-            },
-          ]
-            .map(
-              (card) => `
-                <section class="plan-card">
-                  <div class="plan-card-title">${escapeHtml(card.title)}</div>
-                  <div class="plan-card-value">${escapeHtml(card.value)}</div>
-                </section>
-              `
-          )
-            .join("");
-          syncChordEditor(songs);
           return;
         }
 
@@ -6471,6 +6569,26 @@
         const rhythmSet = shortList(songs.map((song) => rhythmInfo(song).pattern || rhythmInfo(song).hook), 4);
         const referenceRows = planReferenceRows(songs, 4) || "참고곡 코드진행 분석 필요";
         const editableChords = currentChordDraft(songs);
+        const total = Math.max(1, songs.length);
+        const readinessMeters = [
+          { label: "코드", value: (stats.chordCount / total) * 100 },
+          { label: "가사", value: (stats.lyricHookCount / total) * 100 },
+          { label: "멜로디", value: (stats.melodyHookCount / total) * 100 },
+          { label: "리듬", value: (stats.rhythmCount / total) * 100 },
+          { label: "반주", value: (stats.accompanimentCount / total) * 100 },
+        ];
+        const structureTable = [
+          { part: "Verse", design: "낮은 밀도, 장면 중심 문장", basis: `BPM ${stats.avgBpm}, ${type.shortName}` },
+          { part: "Pre", design: "베이스 움직임과 긴장 화음으로 상승", basis: palette.name },
+          { part: "Chorus", design: "제목 훅 1마디 안 노출, 5마디째 해상", basis: formatCounts(stats.topHooks.slice(0, 2)) || "후크 분석 필요" },
+          { part: "Bridge", design: "시점 전환과 borrowed/secondary dominant 1회", basis: palette.goal },
+        ];
+        const chordTable = [
+          { part: "Verse", design: palette.verse.join(" "), basis: "도입 감정/장면 구축" },
+          { part: "Pre", design: palette.pre.join(" "), basis: "후렴 전 긴장 상승" },
+          { part: "Chorus", design: palette.chorus.join(" "), basis: "제목 훅과 해상 지점" },
+          { part: "Bridge", design: palette.bridge.join(" "), basis: "관점 전환/마지막 후렴 진입" },
+        ];
         const cards = [
           {
             title: "창작곡 구조",
@@ -6484,6 +6602,7 @@
               "Bridge 8마디: 시점 전환, borrowed chord 또는 secondary dominant 1회",
               "Final Chorus 16마디: 첫 줄은 얇게, 중반부터 하모니/더블링 확장",
             ].join("\n"),
+            extra: planTable(structureTable),
           },
           {
             title: "코드진행",
@@ -6505,6 +6624,7 @@
               "추천곡 신호:",
               referenceRows,
             ].join("\n"),
+            extra: planTable(chordTable),
           },
           {
             title: "핵심가사",
@@ -6516,6 +6636,7 @@
               hookLines,
               "원칙: 참고곡 문장과 운율은 복제하지 말고, 짧은 선언형 문장 + 마지막 줄 변주만 가져옵니다.",
             ].join("\n"),
+            extra: planMeters(readinessMeters),
           },
           {
             title: "반주 악기 추천",
@@ -6528,16 +6649,7 @@
           },
         ];
 
-        body.innerHTML = cards
-          .map(
-            (card) => `
-              <section class="plan-card">
-                <div class="plan-card-title">${escapeHtml(card.title)}</div>
-                <div class="plan-card-value">${escapeHtml(card.value)}</div>
-              </section>
-            `
-          )
-          .join("");
+        body.innerHTML = renderPlanCards(cards);
         syncChordEditor(songs);
       }
 
@@ -6631,14 +6743,6 @@
             "3. 아래 `최종 선택곡`에 모인 곡을 확인한 뒤 다시 `브리프 상세 생성`을 누르세요.",
           ].join("\n");
           renderSongPlan([]);
-          renderConceptHints();
-          return;
-          $("recipeBody").textContent = [
-            conceptBrief(songs),
-            "",
-            "유형 맞춤 후보곡이나 참고곡에서 최종 선택곡을 먼저 골라주세요.",
-          ].join("\n");
-          renderSongPlan(songs);
           renderConceptHints();
           return;
         }
@@ -6800,11 +6904,24 @@
       function renderCandidatePool() {
         const target = $("candidatePool");
         if (!target) return;
-        if (!state.candidates.length) {
-          target.innerHTML = "";
+        const displayCandidates = state.candidates.length
+          ? state.candidates
+          : hasConceptSeed()
+            ? conceptReferenceSongs(20)
+            : [];
+        if (!displayCandidates.length) {
+          target.innerHTML = `
+            <div class="section-mini-head">
+              <span>1순위 · 유형 맞춤 후보곡 20</span>
+              <span class="small">컨셉을 고르면 가장 가까운 후보곡이 여기 자동으로 나타납니다.</span>
+            </div>
+            <div class="candidate-pool-body">
+              <div class="empty">말하는 자리, 감정, 상황, 사운드를 먼저 고르거나 유형 맞춤 20곡 버튼을 누르세요.</div>
+            </div>
+          `;
           return;
         }
-        const rows = state.candidates
+        const rows = displayCandidates
           .map((song) => {
             const key = identity(song);
             const selected = isSelected(song);
@@ -7066,6 +7183,7 @@
         });
         ["conceptInput", "ideaInput"].forEach((id) => {
           $(id).addEventListener("input", () => {
+            state.candidates = [];
             saveConceptState();
             scheduleConceptOutputs(220);
           });

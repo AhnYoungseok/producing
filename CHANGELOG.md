@@ -23,6 +23,8 @@
 - Added direct YouTube embed hints for frequently surfaced hit references and changed search-only rows to a clear `YouTube 링크 등록/듣기` flow with save and clipboard actions, so `현재 페이지에서 듣기` only appears when an iframe-ready video ID is available.
 - Moved the final selected-song panel to the top of the right-side creation rail and placed the composition plan directly below it, so final picks stay visible before detailed song design.
 - Moved the reference finder directly below the type-matched 20-song candidate area, labeled type matches as the first-priority closest recommendations and the finder as second-priority conditional search, with only 10 reference cards shown by default.
+- Restored the type-matched candidate area as an always-visible first-priority panel with an empty state and automatic 20-song concept matches after concept selection.
+- Expanded the right-side creation workspace substantially and restyled the composition plan with a light-green background, stronger border, larger content area, section tables, and readiness meter graphs.
 - Added public-site automatic chorus/hook candidate panels for each reference card, showing likely chorus windows, hook strength, lyric-structure hints, melody/rhythm cues, chord hints, creative-use notes, and confidence without storing full lyrics or extracting YouTube audio.
 - Added public-site selected-reference combination analysis with average BPM, common key, common chord family, hook type, mood, arrangement signals, conflict notes, and arrangement risk before generating the brief.
 - Added mood-coordinate recommendations to the public-site concept graph, mapping dark/bright and calm/intense drag values into BPM, key, chord color, hook style, arrangement, and brief tone.
@@ -84,6 +86,7 @@
 - Public-site local browser check passed for the YouTube preview repair: known hit references now render an iframe-ready YouTube embed URL, while search-only references show the direct URL registration panel instead of a blank player.
 - Public-site local browser layout check passed for the right rail reorder: the final selected-song panel appears before the composition plan, and the creation rail remains scrollable on desktop.
 - Public-site local browser check passed for the candidate/reference priority layout: type-matched candidates appear before the conditional reference finder, the finder renders 10 cards by default, and `더 보기` expands in 10-song increments.
+- Public-site local browser check passed for the workspace repair: candidate matches auto-render after concept selection, final-pick plus brief generation updates the composition plan, the plan shows tables and meter graphs, and the right rail expands well beyond the short viewport card.
 - Public-site local HTTP browser check passed: 80 reference cards rendered, automatic hook panels and mood-coordinate recommendations were visible, no console errors were reported, and no literal `undefined`, `null`, or `NaN` appeared.
 - Public-site mood coordinate keyboard adjustment changed the creation brief in-browser without console errors.
 - Backend tests passed with `AUTO_REFERENCE_BATCH_ENABLED=false`: 27 tests.
