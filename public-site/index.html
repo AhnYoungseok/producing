@@ -1798,6 +1798,7 @@
       ];
 
       const presets = [
+        { id: "all", label: "전체곡 리스트" },
         { id: "hit", label: "히트 우선" },
         { id: "latest", label: "최신 추가" },
         { id: "kr", label: "한국곡" },
@@ -2806,7 +2807,7 @@
 
       function matchesPreset(song) {
         const preset = state.activePreset;
-        if (!preset || preset === "hit" || preset === "latest") return true;
+        if (!preset || preset === "all" || preset === "hit" || preset === "latest") return true;
         const genre = normalize(song.genre);
         const country = normalize(song.country);
         const hook = normalize(`${song.hook_type} ${song.hook_cue} ${song.hook_location}`);
@@ -3059,7 +3060,7 @@
                 <div class="song-actions">
                   <button type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "담김" : "참고 추가"}</button>
                   <button class="secondary" type="button" data-auto-analysis="${escapeHtml(key)}">AI 5축 분석 초안</button>
-                  <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 검색</a>
+                  <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
                 </div>
               </article>
             `;
@@ -3418,7 +3419,7 @@
                   <div class="selected-meta">${escapeHtml(song.artist)} · ${escapeHtml(song.genre || "-")} · ${escapeHtml(song.bpm || "-")} BPM</div>
                 </div>
                 <div class="selected-actions">
-                  <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube</a>
+                  <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
                   <button class="ghost" type="button" data-remove="${escapeHtml(key)}">삭제</button>
                 </div>
               </div>
@@ -5819,6 +5820,14 @@
       function applyPreset(id) {
         state.activePreset = state.activePreset === id ? "hit" : id;
         state.renderLimit = 80;
+        if (id === "all") {
+          $("searchInput").value = "";
+          $("countryFilter").value = "";
+          $("genreFilter").value = "";
+          $("bpmFilter").value = "";
+          $("hookFilter").value = "";
+          $("confidenceFilter").value = "";
+        }
         if (!state.activePreset || !["90-110", "125-140"].includes(state.activePreset)) {
           $("bpmFilter").value = "";
         }
