@@ -1819,6 +1819,45 @@
         background: linear-gradient(90deg, #74c69d, #1b9aaa);
       }
 
+      .chord-voice-preview {
+        margin-top: 10px;
+        border: 1px solid #b8e2c6;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #f7fff9;
+      }
+
+      .chord-voice-preview table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      .chord-voice-preview th,
+      .chord-voice-preview td {
+        border-bottom: 1px solid #d8efe1;
+        padding: 7px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .chord-voice-preview th {
+        background: #dff7e9;
+        color: #166534;
+        font-weight: 950;
+      }
+
+      .chord-voice-preview tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .chord-voice-empty {
+        padding: 9px 10px;
+        color: var(--quiet);
+        font-size: 12px;
+        font-weight: 750;
+      }
+
       .recipe-body {
         max-height: min(34vh, 430px);
         overflow-y: auto;
@@ -2030,7 +2069,7 @@
       <div class="workspace">
         <section class="panel composer-panel">
           <div class="panel-head">
-            <h2>조합하기 · 창작 브리프</h2>
+            <h2>조합하기 · 핵심 코드 작업대</h2>
           </div>
           <div class="composer-body">
             <div class="concept-lab">
@@ -2091,7 +2130,7 @@
               <textarea id="ideaInput" placeholder="내 곡 키워드: 예) 밤 산책, 후회 없는 이별, 120 BPM 댄스팝"></textarea>
               <div class="action-row">
                 <button id="randomButton" class="secondary" type="button">유형 맞춤 20곡</button>
-                <button id="recipeButton" type="button">브리프 상세 생성</button>
+                <button id="recipeButton" type="button">핵심 코드 생성</button>
               </div>
             </div>
             <div id="candidatePool" class="candidate-pool"></div>
@@ -2142,20 +2181,20 @@
             <div class="brief-layout">
               <div class="creation-rail-head">
                 <div class="creation-rail-title">창작 작업대</div>
-                <div class="small">최종 선택곡 통계로 브리프를 만들고, 바로 아래에서 구조와 코드를 수정합니다.</div>
+                <div class="small">최종 선택곡 통계로 핵심 코드 설계를 만들고, 바로 아래에서 수정·청음합니다.</div>
                 <div class="creation-rail-flow" aria-label="창작 작업 흐름">
-                  <span>1 브리프</span>
-                  <span>2 작곡 설계</span>
+                  <span>1 최종곡</span>
+                  <span>2 핵심 코드</span>
                   <span>3 코드 수정</span>
-                  <span>4 청음</span>
+                  <span>4 정확 청음</span>
                 </div>
               </div>
               <section class="final-pick-panel" aria-label="최종 선택곡">
                 <div class="section-mini-head">
                   <span>최종 선택곡</span>
-                  <span class="small">이 곡들만 브리프/작곡 설계에 반영됩니다.</span>
+                  <button id="clearSelectionButton" class="ghost" type="button">최종곡 비우기</button>
                 </div>
-                <div class="selection-rule">브리프 상세 생성과 작곡 설계는 이 영역에 담긴 최종 선택곡의 코드/후크/멜로디/가사/편곡 분석과 통계만 사용합니다.</div>
+                <div class="selection-rule">핵심 코드 생성과 작곡 설계는 이 영역에 담긴 최종 선택곡의 코드/후크/멜로디/가사/편곡 분석과 통계만 사용합니다.</div>
                 <div id="selectedList" class="selected-list"></div>
                 <div id="selectedInsight" class="selected-insight"></div>
               </section>
@@ -2163,43 +2202,31 @@
                 <div class="recipe-head">
                   <div>
                     <div class="recipe-title">작곡 설계 요약</div>
-                    <div class="small">구조 · 코드진행 · 핵심가사 · 반주 악기</div>
+                    <div class="small">구조 · 핵심 코드 · 보이싱 · 반주 악기</div>
                   </div>
                 </div>
                 <div id="songPlanBody" class="song-plan-body"></div>
                 <div class="composer-editor" aria-label="코드 진행 수정 및 청음">
                   <div>
-                    <div class="recipe-title">코드 진행 수정 / 청음</div>
-                    <div class="small">아래 코드를 계속 고치고 `코드 재생`으로 간단한 피아노 톤을 들어봅니다. 원곡 오디오는 사용하지 않습니다.</div>
+                    <div class="recipe-title">핵심 코드 수정 / 정확 청음</div>
+                    <div class="small">슬래시 베이스, sus, 6/7/maj7/9/add9 텐션을 반영한 피아노 보이싱으로 듣습니다. 원곡 오디오는 사용하지 않습니다.</div>
                   </div>
                   <div class="composer-editor-row">
                     <textarea id="chordEditor" placeholder="예) | Cadd9 | G/B | Am7 | Fadd9 |"></textarea>
                     <input id="chordBpmInput" inputmode="numeric" placeholder="BPM" value="86" />
                   </div>
+                  <div id="chordVoicePreview" class="chord-voice-preview" aria-label="코드 보이싱 미리보기"></div>
                   <div class="song-actions">
                     <button id="applyChordDraftButton" class="secondary" type="button">설계에 반영</button>
-                    <button id="playChordDraftButton" type="button">코드 재생</button>
+                    <button id="playChordDraftButton" type="button">핵심 코드 재생</button>
                     <button id="stopChordDraftButton" class="ghost" type="button">정지</button>
                   </div>
                 </div>
               </aside>
               <div id="youtubePreview" class="youtube-preview empty">곡 카드의 미리듣기 버튼을 누르면 공식 YouTube 임베드 또는 링크 등록 패널이 이 자리에 열립니다.</div>
-              <div class="recipe">
-                <div class="recipe-head">
-                  <div class="recipe-title">창작 브리프</div>
-                  <div class="header-actions">
-                    <button id="clearSelectionButton" class="ghost" type="button">브리프 초기화</button>
-                    <button id="copyRecipeButton" class="ghost" type="button">복사</button>
-                    <button id="copyChordButton" class="ghost" type="button">코드만</button>
-                    <button id="copyHookButton" class="ghost" type="button">후렴만</button>
-                    <button id="copyTaskButton" class="ghost" type="button">오늘 작업</button>
-                  </div>
-                </div>
-                <div id="recipeBody" class="recipe-body">참고곡을 1곡 이상 담거나 유형 맞춤 20곡을 누르면 창작 브리프를 만들 수 있습니다.</div>
-              </div>
             </div>
             <p class="small">
-              브리프는 코드/화성, 곡 구조, 후크 설계를 우선합니다. 먼저 유형 맞춤 후보곡을 보고, 부족할 때 바로 아래 조건 검색 참고곡에서 더 찾아 담으세요.
+              핵심 코드 설계는 최종 선택곡의 코드/화성, 곡 구조, 후크 신호를 우선합니다. 먼저 유형 맞춤 후보곡을 보고, 부족할 때 바로 아래 조건 검색 참고곡에서 더 찾아 담으세요.
             </p>
           </div>
         </section>
@@ -2224,7 +2251,7 @@
               <div class="metric">
                 <div class="metric-label">선택한 참고곡</div>
                 <div id="selectedCountMetric" class="metric-value">0</div>
-                <div class="metric-hint">조합 브리프 기준</div>
+                <div class="metric-hint">핵심 코드 기준</div>
               </div>
               <div class="metric">
                 <div class="metric-label">마지막 추가</div>
@@ -2264,7 +2291,6 @@
       const SELECTION_KEY = "hit-song-lab-selected-v2";
       const CONCEPT_KEY = "hit-song-lab-concept-v1";
       const ANALYSIS_EDIT_KEY = "hit-song-lab-analysis-edits-v1";
-      const LAST_BRIEF_KEY = "hit-song-lab-last-brief-v1";
       const CHORD_DRAFT_KEY = "hit-song-lab-chord-draft-v1";
       const REFERENCE_PAGE_SIZE = 10;
 
@@ -4416,7 +4442,7 @@
                 .join("")}
             </div>
             ${renderSelectedGraph(songs, analysis)}
-            <div class="analysis-note">${escapeHtml(analysis.conflicts.join(" / ") || "큰 충돌 없음. 공통 코드와 후크 유형을 브리프에 우선 반영합니다.")}</div>
+            <div class="analysis-note">${escapeHtml(analysis.conflicts.join(" / ") || "큰 충돌 없음. 공통 코드와 후크 유형을 작곡 설계에 우선 반영합니다.")}</div>
             <div class="analysis-note">조합 추천 방향: ${escapeHtml(analysis.direction)}</div>
           </section>
         `;
@@ -4515,7 +4541,7 @@
       }
 
       function axisDragSummary() {
-        if (!hasAxisOverrides()) return "점을 드래그하면 감정축, 추천곡, 브리프가 즉시 바뀝니다.";
+        if (!hasAxisOverrides()) return "점을 드래그하면 감정축, 추천곡, 핵심 코드 설계가 즉시 바뀝니다.";
         const axes = state.axisOverrides;
         const highAxes = conceptAxes
           .map((axis) => ({ ...axis, value: Math.round(axes[axis.id] ?? 50) }))
@@ -4523,7 +4549,7 @@
           .slice(0, 3)
           .map((axis) => `${axis.label} ${axis.value}`)
           .join(" / ");
-        return `드래그 반영 중: ${highAxes}. 추천곡과 브리프가 이 좌표를 우선 참고합니다.`;
+        return `드래그 반영 중: ${highAxes}. 추천곡과 핵심 코드 설계가 이 좌표를 우선 참고합니다.`;
       }
 
       function moodProfileFromAxes(axes = conceptAxisScores()) {
@@ -4654,7 +4680,7 @@
           <div class="visual-graph-panel">
             <div>
               <div class="visual-graph-title">컨셉 타입 레이더</div>
-              <div class="visual-graph-subtitle">도형 선택과 감정 좌표가 만드는 8축 성향입니다. 튀어나온 축이 브리프의 우선순위가 됩니다.</div>
+              <div class="visual-graph-subtitle">도형 선택과 감정 좌표가 만드는 8축 성향입니다. 튀어나온 축이 핵심 코드와 작곡 설계의 우선순위가 됩니다.</div>
             </div>
             <div class="radar-wrap">
               <svg class="radar-chart" viewBox="0 0 180 180" role="img" aria-label="컨셉 8축 레이더 그래프">
@@ -5732,7 +5758,7 @@
           `컨셉 타입명: ${type.code} · ${type.name}`,
           `타입 축: ${type.gloss}`,
           `세부 유형: ${direction.archetype.detailedName || direction.archetype.name} (${direction.archetype.detailedCode || direction.archetype.code}) · ${direction.archetype.brief}`,
-          `성향 좌표: ${leadingAxes}. 좌표와 막대가 한쪽으로 기울수록 브리프도 더 강하게 그 방향으로 잡힙니다.`,
+          `성향 좌표: ${leadingAxes}. 좌표와 막대가 한쪽으로 기울수록 핵심 코드 설계도 더 강하게 그 방향으로 잡힙니다.`,
           `태도 질문: ${profile ? `${profile}에서는 어떤 욕망을 숨기고 어떤 상처를 처리하는가?` : "말하는 자리/말투/애착/결핍을 고르면 유형이 더 정확해집니다."}`,
           `한 줄 약속: ${concept || idea || selectedLine || "선택한 도형들이 자동으로 한 줄 컨셉이 됩니다."}`,
           `추천 방향: ${direction.lane}. 제목 감각은 ${direction.titleShape}.`,
@@ -5799,93 +5825,6 @@
           `끝난 이야기가 아니라 ${mood.ending}을 여는 첫 줄이야`,
           `${archetype.name}의 마음으로, 울지 않고 제일 깊게 말할게`,
         ];
-      }
-
-      function conceptBrief(songs) {
-        const { profile, concept, idea, selectedLine } = conceptState();
-        const direction = conceptDirection(songs);
-        const type = conceptTypeSignature(direction.archetype);
-        const stats = referenceStats(songs);
-        const trendLine = trendHints.slice(0, 3).join(" ");
-        const seed = concept || selectedLine || idea || "선택 전";
-        const axes = direction.archetype.axes || conceptAxisScores();
-        const axisSummary = conceptAxes
-          .map((axis) => `  - ${axis.label}: ${Math.round(axes[axis.id] ?? 50)} (${(axes[axis.id] ?? 50) >= 50 ? axis.high : axis.low})`)
-          .join("\n");
-        const nearbySummary = (direction.archetype.ranked || [])
-          .slice(0, 3)
-          .map((item, index) => `  ${index + 1}. ${item.name} ${Math.round(item.score || 0)}점 - ${(item.matched || []).slice(0, 3).join(" / ") || "축 점수 근접"}`)
-          .join("\n");
-        const selectedGroups = conceptCategories
-          .map((category) => {
-            const labels = selectedConceptLabels(category.id);
-            return labels.length ? `  - ${category.title}: ${labels.join(" / ")}` : "";
-          })
-          .filter(Boolean)
-          .join("\n");
-        const referenceList = songs
-          .slice(0, 20)
-          .map((song, index) => {
-            const bits = [song.genre, song.country, song.bpm ? `${song.bpm} BPM` : "", song.hook_type].filter(Boolean).join(" · ");
-            return `  ${index + 1}. ${song.title} - ${song.artist}${bits ? ` (${bits})` : ""}`;
-          })
-          .join("\n");
-        const hookExamples = lyricHookExamples(direction)
-          .slice(0, 10)
-          .map((line, index) => `  ${index + 1}. ${line}`)
-          .join("\n");
-        return [
-          "[가사 후크 예시 10]",
-          "- 아래 문장은 참고곡 가사가 아니라 현재 컨셉에서 새로 만든 후크 초안입니다.",
-          hookExamples,
-          "",
-          adaptiveRecommendationBlock(songs),
-          "",
-          "[컨셉 먼저]",
-          `- 컨셉 타입명: ${type.code} · ${type.name}`,
-          `- 타입 축: ${type.gloss}`,
-          `- 세부 유형: ${direction.archetype.detailedName || direction.archetype.name}`,
-          `- 유형 코드: ${direction.archetype.detailedCode || direction.archetype.code} / 기본 ${direction.archetype.code} / 판정 ${direction.archetype.confidence}`,
-          `- 유형 정의: ${direction.archetype.brief}`,
-          `- 말투/태도: ${direction.archetype.voice}`,
-          "- 성향축 점수:",
-          axisSummary,
-          "- 근접 유형 후보:",
-          nearbySummary || "  - 선택값을 더 넣으면 후보가 정교해집니다.",
-          `- 한 줄 컨셉: ${seed}`,
-          `- 선택한 도형:`,
-          selectedGroups || "  - 아직 선택 전. 말하는 자리, 감정, 상황, 사운드부터 고르세요.",
-          `- 말하는 자리/말투: ${profile || "선택 전. 숫자보다 말투, 체온, 겪어본 감각을 먼저 고르세요."}`,
-          `- 추천 컨셉 레인: ${direction.lane}`,
-          `- 곡의 약속: ${direction.promise}`,
-          `- 제목 방향: ${direction.titleShape}`,
-          `- 훅 규칙: ${direction.hookRule}`,
-          `- 최신 경향 반영: ${trendLine}`,
-          "",
-          "[유형 맞춤 히트곡 20]",
-          referenceList || "  - 데이터 로딩 후 자동 추천됩니다.",
-          "",
-          "[추천곡별 필수 분석: 가사/멜로디/리듬/반주]",
-          perSongHookCoreRows(songs, 20) || "  - 추천곡이 로딩되면 후렴 발췌, 구조 요약, 후크 멜로디, 리듬, 반주/제작 분석 상태를 표시합니다.",
-          "",
-          "[추천곡별 코드진행 분석]",
-          perSongChordAnalysisRows(songs, 20) || "  - 추천곡이 로딩되면 곡별 코드 진행과 창작 적용 진행을 표시합니다.",
-          "",
-          "[20곡 통계 해석]",
-          `- BPM: ${stats.avgBpm}, 범위 ${stats.range}`,
-          `- 장르 TOP: ${formatCounts(stats.topGenres)}`,
-          `- 국가/차트권 TOP: ${formatCounts(stats.topCountries)}`,
-          `- 후크 TOP: ${formatCounts(stats.topHooks)}`,
-          `- 출처 TOP: ${formatCounts(stats.topSources)}`,
-          `- 가사/정서 TOP: ${formatCounts(stats.topThemes)}`,
-          `- 세부 분석 보유: ${stats.detailedCount}/${songs.length}곡, 코드: ${stats.chordCount}/${songs.length}곡, 가사 후크: ${stats.lyricHookCount}/${songs.length}곡, 멜로디: ${stats.melodyHookCount}/${songs.length}곡, 리듬: ${stats.rhythmCount}/${songs.length}곡, 반주/제작: ${stats.accompanimentCount}/${songs.length}곡, 5축 완료: ${stats.completeAnalysisCount}/${songs.length}곡, 저신뢰 차트-only 행: ${stats.lowCount}/${songs.length}곡`,
-          "- 컨셉 체크 질문:",
-          "  1. 이 노래의 주인공은 왜 지금 이 말을 해야 하나?",
-          "  2. 이 유형의 숨은 욕망과 상처가 한 문장 안에서 충돌하는가?",
-          "  3. 이 말투와 태도가 아니면 못 나오는 표현은 무엇인가?",
-          "  4. 듣는 사람이 10초 안에 기억할 제목/장면/동작은 무엇인가?",
-          "  5. 너무 젊게 꾸민 표현이나 너무 설명적인 문장을 지웠는가?",
-        ].join("\n");
       }
 
       function chordSourceSummary(songs) {
@@ -6360,6 +6299,7 @@
         if (bpmInput && !bpmInput.value.trim()) {
           bpmInput.value = String(averageBpmNumber(songs) || 86);
         }
+        renderChordVoicePreview();
       }
 
       function applyChordDraft() {
@@ -6367,11 +6307,76 @@
         if (!editor) return;
         saveChordDraft(editor.value);
         renderSongPlan(referenceSongsForBrief());
-        setStatus("수정한 코드 진행이 작곡 설계에 반영됨");
+        renderChordVoicePreview();
+        setStatus("수정한 핵심 코드가 작곡 설계에 반영됨");
       }
 
       function midiFrequency(midi) {
         return 440 * Math.pow(2, (midi - 69) / 12);
+      }
+
+      const midiNoteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+      function midiNoteName(midi) {
+        if (!Number.isFinite(midi)) return "";
+        const pc = ((Math.round(midi) % 12) + 12) % 12;
+        const octave = Math.floor(Math.round(midi) / 12) - 1;
+        return `${midiNoteNames[pc]}${octave}`;
+      }
+
+      function uniqueMidiNotes(notes) {
+        return [...new Set(notes.filter((note) => Number.isFinite(note)))].sort((a, b) => a - b);
+      }
+
+      function chordAudioIntervals(suffix) {
+        const text = String(suffix || "");
+        const hasAdd9 = /add9/i.test(text);
+        const hasMajorSeventhFamily = /maj7|maj9|maj13|mmaj7/i.test(text);
+        const hasMinorSeventhFamily = /m7|min7|m9|min9|ø/i.test(text);
+        const hasPlainDominantSeventh = /(^|[^a-z])7/i.test(text);
+        const hasPlainNinth = /(^|[^a-z])9/i.test(text);
+        const hasExtendedDominant = /11|13|alt/i.test(text) || (hasPlainNinth && !hasAdd9);
+        let intervals;
+        if (/sus2/i.test(text)) intervals = [0, 2, 7];
+        else if (/sus4|sus/i.test(text)) intervals = [0, 5, 7];
+        else if (/dim|°|ø|m7b5/i.test(text)) intervals = [0, 3, 6];
+        else if (/aug|\+5|#5/i.test(text)) intervals = [0, 4, 8];
+        else if (/^m(?!aj)|min/i.test(text)) intervals = [0, 3, 7];
+        else intervals = [0, 4, 7];
+
+        if (/b5/i.test(text) || /m7b5|ø/i.test(text)) intervals = intervals.map((interval) => (interval === 7 ? 6 : interval));
+        if (/#5|\+5|aug/i.test(text)) intervals = intervals.map((interval) => (interval === 7 ? 8 : interval));
+
+        if (/dim7|°7/i.test(text)) intervals.push(9);
+        else if (hasMajorSeventhFamily) intervals.push(11);
+        else if (hasMinorSeventhFamily || hasPlainDominantSeventh || hasExtendedDominant) intervals.push(10);
+
+        if (/6/.test(text) && !/16/.test(text)) intervals.push(9);
+        if (/b9/i.test(text)) intervals.push(13);
+        if (/#9/i.test(text)) intervals.push(15);
+        if (hasAdd9 || hasPlainNinth || /maj9|min9|m9/i.test(text)) intervals.push(14);
+        if (/#11/i.test(text)) intervals.push(18);
+        else if (/11/i.test(text)) intervals.push(17);
+        if (/13/i.test(text)) intervals.push(21);
+        if (/alt/i.test(text)) intervals.push(13, 18);
+
+        return [...new Set(intervals)].sort((a, b) => a - b);
+      }
+
+      function voicedUpperRoot(rootPc) {
+        let midi = 48 + rootPc;
+        while (midi < 55) midi += 12;
+        while (midi > 66) midi -= 12;
+        return midi;
+      }
+
+      function bassMidiForChord(chord, rootPc) {
+        const bassPc = chord.bass ? pitchClass(chord.bass) : rootPc;
+        if (bassPc === undefined) return 36 + rootPc;
+        let midi = 36 + bassPc;
+        while (midi < 36) midi += 12;
+        while (midi > 48) midi -= 12;
+        return midi;
       }
 
       function chordMidiNotes(symbol) {
@@ -6379,16 +6384,50 @@
         if (!chord) return [];
         const pc = pitchClass(chord.root);
         if (pc === undefined) return [];
-        const suffix = chord.suffix || "";
-        const minor = /^m(?!aj)/i.test(suffix);
-        const dim = /dim|ø|m7b5/i.test(suffix);
-        const aug = /aug|\+5/i.test(suffix);
-        const intervals = dim ? [0, 3, 6] : aug ? [0, 4, 8] : minor ? [0, 3, 7] : [0, 4, 7];
-        if (/maj7/i.test(suffix)) intervals.push(11);
-        else if (/(^|[^a-z])7|m7|min7|13|9/i.test(suffix)) intervals.push(10);
-        if (/9|add9/i.test(suffix)) intervals.push(14);
-        const base = 48 + pc;
-        return intervals.map((interval) => base + interval);
+        const upperRoot = voicedUpperRoot(pc);
+        const upperNotes = chordAudioIntervals(chord.suffix).map((interval) => {
+          let note = upperRoot + interval;
+          while (note > 81) note -= 12;
+          return note;
+        });
+        return uniqueMidiNotes([bassMidiForChord(chord, pc), ...upperNotes]);
+      }
+
+      function renderChordVoicePreview() {
+        const target = $("chordVoicePreview");
+        const editor = $("chordEditor");
+        if (!target || !editor) return;
+        const chords = chordTokens(editor.value).filter((token) => parseChordSymbol(token)).slice(0, 16);
+        if (!chords.length) {
+          target.innerHTML = `<div class="chord-voice-empty">코드를 입력하면 베이스와 상성부 보이싱이 여기에 표시됩니다.</div>`;
+          return;
+        }
+        const rows = chords
+          .map((symbol) => {
+            const notes = chordMidiNotes(symbol);
+            const bass = notes.length ? midiNoteName(notes[0]) : "-";
+            const upper = notes.slice(1).map(midiNoteName).join(" · ") || "-";
+            return `
+              <tr>
+                <td><strong>${escapeHtml(symbol)}</strong></td>
+                <td>${escapeHtml(bass)}</td>
+                <td>${escapeHtml(upper)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+        target.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>코드</th>
+                <th>베이스</th>
+                <th>상성부 보이싱</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
       }
 
       function stopChordPlayback() {
@@ -6417,27 +6456,53 @@
           return;
         }
         const context = new AudioContextClass();
+        if (context.state === "suspended" && context.resume) context.resume();
         const bpm = numericValue($("chordBpmInput")?.value, averageBpmNumber(referenceSongsForBrief()) || 86);
         const chordDuration = Math.max(0.72, (60 / Math.max(40, bpm)) * 2);
         const master = context.createGain();
+        const filter = context.createBiquadFilter();
+        const compressor = context.createDynamicsCompressor();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(4600, context.currentTime);
+        filter.Q.setValueAtTime(0.7, context.currentTime);
+        compressor.threshold.setValueAtTime(-18, context.currentTime);
+        compressor.knee.setValueAtTime(24, context.currentTime);
+        compressor.ratio.setValueAtTime(3, context.currentTime);
+        compressor.attack.setValueAtTime(0.003, context.currentTime);
+        compressor.release.setValueAtTime(0.18, context.currentTime);
         master.gain.setValueAtTime(0.0001, context.currentTime);
-        master.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.03);
-        master.connect(context.destination);
+        master.gain.exponentialRampToValueAtTime(0.22, context.currentTime + 0.03);
+        master.connect(filter);
+        filter.connect(compressor);
+        compressor.connect(context.destination);
         chords.forEach((symbol, index) => {
           const start = context.currentTime + index * chordDuration;
           const end = start + chordDuration * 0.88;
-          const gain = context.createGain();
-          gain.gain.setValueAtTime(0.0001, start);
-          gain.gain.exponentialRampToValueAtTime(0.16, start + 0.04);
-          gain.gain.exponentialRampToValueAtTime(0.0001, end);
-          gain.connect(master);
           chordMidiNotes(symbol).forEach((midi, noteIndex) => {
-            const osc = context.createOscillator();
-            osc.type = noteIndex ? "triangle" : "sine";
-            osc.frequency.setValueAtTime(midiFrequency(midi), start);
-            osc.connect(gain);
-            osc.start(start);
-            osc.stop(end + 0.04);
+            const noteGain = context.createGain();
+            const peak = noteIndex === 0 ? 0.105 : 0.052;
+            noteGain.gain.setValueAtTime(0.0001, start);
+            noteGain.gain.exponentialRampToValueAtTime(peak, start + 0.018);
+            noteGain.gain.exponentialRampToValueAtTime(peak * 0.72, start + 0.16);
+            noteGain.gain.exponentialRampToValueAtTime(0.0001, end);
+            noteGain.connect(master);
+
+            const mainOsc = context.createOscillator();
+            mainOsc.type = noteIndex === 0 ? "sine" : "triangle";
+            mainOsc.frequency.setValueAtTime(midiFrequency(midi), start);
+            mainOsc.connect(noteGain);
+            mainOsc.start(start);
+            mainOsc.stop(end + 0.05);
+
+            if (noteIndex > 0) {
+              const colorOsc = context.createOscillator();
+              colorOsc.type = "sine";
+              colorOsc.detune.setValueAtTime(3.5, start);
+              colorOsc.frequency.setValueAtTime(midiFrequency(midi), start);
+              colorOsc.connect(noteGain);
+              colorOsc.start(start);
+              colorOsc.stop(end + 0.04);
+            }
           });
         });
         state.chordAudio = {
@@ -6520,7 +6585,7 @@
             },
             {
               title: "다음 행동",
-              value: "유형 맞춤 후보곡 20곡 또는 참고곡 찾기 검색 결과에서 마음에 드는 곡을 고른 뒤 `브리프 상세 생성`을 누르세요.",
+              value: "유형 맞춤 후보곡 20곡 또는 참고곡 찾기 검색 결과에서 마음에 드는 곡을 고른 뒤 `핵심 코드 생성`을 누르세요.",
             },
             {
               title: "코드 청음",
@@ -6528,7 +6593,7 @@
               extra: planTable([
                 { part: "1", design: "유형 맞춤 후보곡 20 생성", basis: "컨셉 좌표와 선택 도형" },
                 { part: "2", design: "최종 선택곡 담기", basis: "선택곡만 분석/통계 기준" },
-                { part: "3", design: "브리프 상세 생성", basis: "코드/후크/멜로디/가사/편곡 통합" },
+                { part: "3", design: "핵심 코드 생성", basis: "코드/후크/멜로디/가사/편곡 통합" },
               ]),
             },
           ];
@@ -6543,6 +6608,7 @@
             bpmInput.value = "";
             bpmInput.placeholder = "선택곡 BPM";
           }
+          renderChordVoicePreview();
           return;
         }
 
@@ -6687,218 +6753,24 @@
         ].join("\n");
       }
 
-      function creativeBriefTwentySections(songs) {
-        const direction = conceptDirection(songs);
-        const type = conceptTypeSignature(direction.archetype);
-        const mood = moodProfileFromAxes(conceptAxisScores());
-        const combo = selectedCombinationAnalysis(state.selected.length ? state.selected : songs.slice(0, 3));
-        const palette = harmonyPalette(songs);
-        const hookExamples = lyricHookExamples(direction)
-          .slice(0, 5)
-          .map((line, index) => `   ${index + 1}. ${line}`)
-          .join("\n");
-        const references = sortByHitPriority(songs)
-          .slice(0, 5)
-          .map((song) => `${song.title} - ${song.artist}`)
-          .join(" / ");
-        const chorusProgression = palette.chorus.join(" ");
-        const chorusRoman = toRomanProgression(chorusProgression.replace(/[|]/g, " "), { key: palette.key });
-        return [
-          "[창작 브리프 20항목]",
-          `1. 한 줄 컨셉: ${conceptState().concept || conceptState().selectedLine || `${type.shortName}으로 ${direction.lane}을 만든다.`}`,
-          `2. 곡의 핵심 정서: ${mood.label} · ${mood.briefTone}`,
-          `3. 추천 장르: ${direction.lane} / 참고 ${combo.arrangement || "편곡 분석 필요"}`,
-          `4. 추천 BPM: ${combo.avg !== "BPM 분석 필요" ? combo.avg : mood.bpm}`,
-          `5. 추천 Key: ${combo.key || mood.key}`,
-          "6. 전체 곡 구조: Intro 4 - Verse 8 - Pre 8 - Chorus 8/16 - Verse 2 - Bridge 8 - Final Chorus 16 - Outro 4",
-          "7. Verse 설계: 낮은 음역, 정보량은 적게, 장면 단어 1개만 붙잡고 코드 변화는 반주가 아니라 감정의 그림자로 둡니다.",
-          "8. Pre-Chorus 설계: 베이스 하행/상행을 분명히 하고, 마지막 2마디는 보컬 호흡과 긴장 화음으로 코러스 문을 엽니다.",
-          `9. Chorus 설계: ${autoHookCandidateRows(songs, 1).split("\n").slice(1, 4).join(" ")}`,
-          `10. Hook 설계: ${adaptiveHookPlan(songs).split("\n").slice(0, 4).join(" ")}`,
-          `11. 코드진행 제안: ${palette.name}. 같은 원곡 진행을 복제하지 말고 ${palette.goal}`,
-          `12. 8마디 후렴 코드 예시: ${chorusProgression} / Roman ${chorusRoman || "기능 분석 필요"}`,
-          `13. 멜로디 윤곽 제안: ${mood.hookStyle}. 후보 참고곡의 탑라인 윤곽은 피하고 음역 폭/반복 원리만 씁니다.`,
-          "14. 후렴 가사 방향: 첫 줄은 감정 선언, 세 번째 줄은 이미지 확장, 마지막 줄은 제목이 되는 짧은 문장으로 정리합니다.",
-          `15. 편곡 방향: ${mood.arrangement}. 선택곡 공통 편곡은 ${combo.arrangement || "분석 필요"}입니다.`,
-          "16. 보컬 디렉팅: 벌스는 말하듯 가까이, 프리코러스는 호흡을 짧게, 후렴 3번째 줄에 감정 밀도를 올리고 마지막 줄은 과장하지 않습니다.",
-          `17. 참고곡에서 가져올 점: ${references}의 코드 기능, 후크 진입 방식, 편곡 밀도 같은 원리만 가져옵니다.`,
-          "18. 참고곡에서 피해야 할 점: 원곡 멜로디, 가사 문장, 리프, 애드립, 사운드 로고를 직접 복제하지 않습니다.",
-          `19. 차별화 전략: ${combo.conflicts.length ? combo.conflicts.join(" / ") : "공통 진행을 쓰되 시작 화음, 제목 위치, 마지막 2마디 해상을 바꿉니다."}`,
-          ["20. 오늘 바로 만들 30분 작업 지시:", "   1. 권장 BPM으로 8마디 후렴 코드 루프를 먼저 찍습니다.", "   2. 후렴 첫 2마디는 5음 이내 좁은 음역으로 반복합니다.", "   3. 3번째 줄에서 최고음을 한 번만 사용합니다.", "   4. 제목 후보 5개 중 하나를 마지막 줄에 반복합니다.", "   5. 벌스는 말하듯 낮게 녹음하고 프리코러스에서 리듬을 촘촘하게 만듭니다."].join("\n"),
-          "",
-          "[가사 후크 예시 5개]",
-          hookExamples,
-        ].join("\n");
-      }
-
-      function buildRecipe() {
+      function buildRecipe(forceCoreChord = false) {
         const songs = referenceSongsForBrief();
+        if (forceCoreChord && songs.length) {
+          state.chordDraft = "";
+          state.chordDraftDirty = false;
+          localStorage.removeItem(CHORD_DRAFT_KEY);
+          syncChordEditor(songs, true);
+        }
         if (!songs.length) {
-          $("recipeBody").textContent = [
-            "[최종 선택곡 필요]",
-            "브리프 상세 생성과 작곡 설계는 후보곡 전체가 아니라, 사용자가 `최종 선택곡에 담기`로 고른 곡들의 분석/통계만 사용합니다.",
-            "",
-            "1. `유형 맞춤 20곡`을 눌러 후보곡을 만들거나 참고곡 찾기에서 검색하세요.",
-            "2. 마음에 드는 곡 카드의 `최종 선택곡에 담기` 버튼을 누르세요.",
-            "3. 아래 `최종 선택곡`에 모인 곡을 확인한 뒤 다시 `브리프 상세 생성`을 누르세요.",
-          ].join("\n");
           renderSongPlan([]);
           renderConceptHints();
+          if (forceCoreChord) setStatus("최종 선택곡을 먼저 담아야 핵심 코드를 만들 수 있습니다", true);
           return;
         }
 
-        if (!state.selected.length) {
-          $("recipeBody").textContent = [
-            conceptBrief(songs),
-            "",
-            "[다음 순서]",
-            "1. 유형 맞춤 후보곡 20곡 또는 참고곡 찾기 목록에서 `최종 선택`을 누릅니다.",
-            "2. 아래 `최종 선택곡`에 모인 곡만 브리프와 작곡 설계 기준이 됩니다.",
-            "3. 최종 선택곡을 고른 뒤 `브리프 상세 생성`을 누르세요.",
-          ].join("\n");
-          renderSongPlan(songs);
-          renderConceptHints();
-          return;
-        }
-
-        const { idea } = conceptState();
-        const avgBpm = summarizeBpm(songs);
-        const genres = shortList(songs.map((song) => song.genre));
-        const hooks = shortList(songs.map((song) => song.hook_type));
-        const hookLocations = shortList(songs.map((song) => song.hook_location));
-        const keys = shortList(songs.map((song) => song.key));
-        const themes = shortList(songs.map((song) => song.lyric_theme), 2);
-        const arrangements = shortList(songs.map((song) => song.arrangement), 2);
-        const vocals = shortList(songs.map((song) => song.vocal), 2);
-        const mixes = shortList(songs.map((song) => song.mixing), 2);
-        const dominantHook = commonValue(songs, (song) => song.hook_type);
-        const dominantGenre = commonValue(songs, (song) => song.genre);
-        const harmonyPlan = harmonicBlueprint(songs);
-        const structurePlan = structureBlueprint(songs);
-        const stats = referenceStats(songs);
-
-        const references = songs.slice(0, 20).map((song) => `${song.title} - ${song.artist}`).join(" + ");
-        const brief = [
-          conceptBrief(songs),
-          "",
-          `참고 조합: ${references}`,
-          idea ? `내 곡 키워드: ${idea}` : "내 곡 키워드: 직접 입력 전",
-          "",
-          "[선택곡 조합 분석]",
-          selectedCombinationBlock(songs),
-          "",
-          "[방향 요약]",
-          `- 장르 중심: ${dominantGenre} 기반, 보조 색채는 ${genres}`,
-          `- 20곡 통계 기준: ${songs.length}곡, BPM ${stats.avgBpm} (${stats.range}), 장르 ${formatCounts(stats.topGenres.slice(0, 3))}`,
-          adaptiveRecommendationBlock(songs),
-          `- 템포/키 기준: ${avgBpm}, 후보 키 ${keys}`,
-          `- 신뢰도 해석: 저신뢰 차트-only ${stats.lowCount}곡은 히트 신호/제목/장르 참고로만 쓰고, 코드/멜로디/리듬/반주 판단은 5축 분석 완료 ${stats.completeAnalysisCount}곡과 세부 분석 보유 ${stats.detailedCount}곡을 더 우선합니다.`,
-          "- 아래 코드는 원곡 복제가 아니라 선택곡 분위기를 바탕으로 만든 새 곡용 설계안입니다.",
-          "",
-          "[코드/화성 우선 설계]",
-          harmonyPlan,
-          "",
-          "[곡 구조 우선 설계]",
-          structurePlan,
-          "",
-          "[자동 후렴/후크 후보 분석]",
-          autoHookCandidateRows(songs, 6),
-          "",
-          "[후크 설계]",
-          adaptiveHookPlan(songs),
-          `- 참고 후크 계열: ${hooks}`,
-          `- 핵심 방식: ${dominantHook}`,
-          `- 위치: ${hookLocations}`,
-          "- 제목/시그니처 큐는 2-6음절 또는 3-5단어 안에서 만들고, 코러스 1마디 안에 첫 노출을 둡니다.",
-          "- 훅 멜로디는 코드의 3도 또는 9도에서 시작해도 좋습니다. 3도는 안정, 9도는 더 현대적이고 서정적인 색입니다.",
-          "- 참고곡의 멜로디 윤곽, 리듬 말맛, 애드립, 사운드 시그니처는 피하고 새 문장과 새 리듬으로 씁니다.",
-          "",
-          "[가사/상황]",
-          `- 정서 재료: ${themes}`,
-          "- 곡의 말하는 자리는 한 문장으로 설명될 만큼 선명하게 잡고, 벌스는 장면, 프리코러스는 압력, 코러스는 결론으로 씁니다.",
-          "- 코러스 첫 줄은 코드 해상 지점과 같은 의미의 문장으로 둡니다. 예: 인정, 고백, 포기, 돌아섬, 다시 시작.",
-          "",
-          "[편곡/보컬/믹스]",
-          `- 편곡: ${arrangements}`,
-          `- 보컬: ${vocals}`,
-          `- 믹스: ${mixes}`,
-          "- 1절은 적게, 첫 코러스는 선명하게, 마지막 코러스는 더블/애드립/응답으로 넓힙니다.",
-          "",
-          "[피할 것]",
-          "- 원곡의 가사, 멜로디, 리프, 탑라인 윤곽, 애드립, 사운드 시그니처를 복제하지 않습니다.",
-          "- 참고는 구조와 원리만 가져오고, 제목 문장과 리듬 포켓은 새로 만듭니다.",
-          "",
-          "[다음 작업]",
-          "1. 제목 후보 5개를 한 줄 훅으로 씁니다.",
-          "2. 8마디 코러스 멜로디를 먼저 만들고 벌스를 뒤에서 맞춥니다.",
-          "3. 드럼/베이스/코드 루프만으로 60초 데모를 만듭니다.",
-          "4. 참고곡과 나란히 듣고 비슷한 부분은 바로 바꿉니다.",
-          "",
-          creativeBriefTwentySections(songs),
-        ].join("\n");
-
-        $("recipeBody").textContent = brief;
-        localStorage.setItem(LAST_BRIEF_KEY, brief);
         renderSongPlan(songs);
         renderConceptHints();
-      }
-
-      function extractBracketSection(text, heading) {
-        const start = text.indexOf(heading);
-        if (start < 0) return "";
-        const next = text.slice(start + heading.length).search(/\n\[[^\]]+\]/);
-        return next >= 0 ? text.slice(start, start + heading.length + next).trim() : text.slice(start).trim();
-      }
-
-      function extractTaskSection(text) {
-        const nextWork = extractBracketSection(text, "[다음 작업]");
-        const index = text.indexOf("20. 오늘 바로 만들 30분 작업 지시:");
-        const today = index >= 0 ? text.slice(index).split("\n[가사 후크 예시 5개]")[0].trim() : "";
-        return [nextWork, today].filter(Boolean).join("\n\n");
-      }
-
-      function recipePartText(part) {
-        const text = $("recipeBody").textContent.trim();
-        if (part === "chords") {
-          return [extractBracketSection(text, "[코드/화성 우선 설계]"), extractBracketSection(text, "[창작 브리프 20항목]")]
-            .filter(Boolean)
-            .join("\n\n");
-        }
-        if (part === "hooks") {
-          return [
-            extractBracketSection(text, "[자동 후렴/후크 후보 분석]"),
-            extractBracketSection(text, "[후크 설계]"),
-            extractBracketSection(text, "[가사/상황]"),
-          ]
-            .filter(Boolean)
-            .join("\n\n");
-        }
-        if (part === "task") return extractTaskSection(text);
-        return text;
-      }
-
-      async function copyRecipePart(part = "all") {
-        const text = recipePartText(part).trim();
-        if (!text) return;
-        const label = part === "chords" ? "코드진행" : part === "hooks" ? "후렴/후크" : part === "task" ? "오늘 작업" : "브리프";
-        try {
-          await navigator.clipboard.writeText(text);
-          setStatus(`${label} 복사됨`);
-        } catch {
-          const textarea = document.createElement("textarea");
-          textarea.value = text;
-          textarea.setAttribute("readonly", "");
-          textarea.style.position = "fixed";
-          textarea.style.left = "-9999px";
-          document.body.appendChild(textarea);
-          textarea.focus();
-          textarea.select();
-          textarea.setSelectionRange(0, text.length);
-          const ok = document.execCommand("copy");
-          if (ok) textarea.remove();
-          else setTimeout(() => textarea.remove(), 8000);
-          setStatus(ok ? `${label} 복사됨` : "복사 권한 제한: 지금 Ctrl+C를 누르세요", false);
-        }
+        if (forceCoreChord) setStatus("선택곡 통계로 핵심 코드 생성됨");
       }
 
       function renderCandidatePool() {
@@ -6949,10 +6821,6 @@
           </div>
           <div class="candidate-pool-body">${rows}</div>
         `;
-      }
-
-      async function copyRecipe() {
-        return copyRecipePart("all");
       }
 
       function applyPersonaDragPoint(event, rect) {
@@ -7136,7 +7004,6 @@
           state.selected = [];
           state.previewSongKey = "";
           saveSelection();
-          localStorage.removeItem(LAST_BRIEF_KEY);
           renderCandidatePool();
           renderSelection();
           renderYoutubePreview();
@@ -7145,16 +7012,13 @@
         });
 
         $("randomButton").addEventListener("click", chooseRandom);
-        $("recipeButton").addEventListener("click", buildRecipe);
-        $("copyRecipeButton").addEventListener("click", copyRecipe);
-        $("copyChordButton").addEventListener("click", () => copyRecipePart("chords"));
-        $("copyHookButton").addEventListener("click", () => copyRecipePart("hooks"));
-        $("copyTaskButton").addEventListener("click", () => copyRecipePart("task"));
+        $("recipeButton").addEventListener("click", () => buildRecipe(true));
         $("applyChordDraftButton").addEventListener("click", applyChordDraft);
         $("playChordDraftButton").addEventListener("click", playChordDraft);
         $("stopChordDraftButton").addEventListener("click", stopChordPlayback);
         $("chordEditor").addEventListener("input", () => {
           state.chordDraftDirty = true;
+          renderChordVoicePreview();
         });
         $("youtubePreview").addEventListener("click", (event) => {
           const addButton = event.target.closest("[data-preview-add]");

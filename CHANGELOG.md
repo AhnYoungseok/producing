@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- Removed the public-site creative brief panel from the main workflow and redirected the creation action to final-pick-based core chord generation.
+- Corrected public-site chord audition voicing so `add9` chords no longer imply a dominant seventh and slash chords render their bass note separately.
 - Rebuilt Composer Coach concept flow around structured archetypes, reset support, concept-aware reference matching, and harmony briefs that vary from the matched reference statistics.
 - Changed the default auto-reference batch settings to safe development defaults: disabled and no startup run unless explicitly enabled by environment variables.
 - Replaced broken Hook Lab UI copy and backend Hook Lab fallback strings so loading, error, empty, search, filter, confidence, and pagination states are readable.
@@ -17,6 +19,7 @@
 - Added explicit `최종 곡에 담기` actions to every type-matched 20-song candidate row so recommended candidates can be moved into the final selected-song set without searching again.
 - Added clearer `최종 선택곡에 담기` buttons on both candidate recommendations and searched reference cards, plus an explicit rule panel stating that briefs and composition plans use only final selected-song analysis/statistics.
 - Added an editable public-site chord design pad inside the composition plan, with local Web Audio chord playback and stop controls for auditioning revised progressions without using original-song audio.
+- Added a public-site chord voicing preview table that shows each generated chord's bass note and upper voicing before playback.
 - Added a right-side public-site creation workspace that groups the creative brief, composition plan, chord editing, and audition controls into a structured desktop rail.
 - Added an in-page official YouTube preview panel with `현재 페이지에서 듣기` buttons on reference cards, candidate rows, and final-pick rows; direct video URLs render through YouTube's iframe player, while search-only rows show a safe fallback and a local direct-URL save field.
 - Added a final-pick action directly inside the in-page YouTube preview panel so users can listen first and immediately move the song into the final selected set.
