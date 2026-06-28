@@ -6377,6 +6377,114 @@
         return state.chordDraft || defaultEditableChords(songs);
       }
 
+      function chordTextLines(raw) {
+        return String(raw || "")
+          .split(/\n+/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .filter((line) => hasPlayableChordText(line));
+      }
+
+      function normalizeChordSectionLabel(label) {
+        const key = String(label || "").toLowerCase();
+        if (/^(verse|벌스|v1|v2)/.test(key)) return "Verse";
+        if (/^(pre|pre-chorus|prechorus|프리)/.test(key)) return "Pre";
+        if (/^(chorus|hook|후렴|훅)/.test(key)) return "Chorus";
+        if (/^(bridge|브릿지|브리지)/.test(key)) return "Bridge";
+        return "";
+      }
+
+      function chordDraftSections(raw) {
+        const sections = { Verse: [], Pre: [], Chorus: [], Bridge: [] };
+        const unlabelled = [];
+        let current = "";
+        String(raw || "")
+          .split(/\n+/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .forEach((line) => {
+            const match = line.match(/^(verse|벌스|v1|v2|pre[- ]?chorus|prechorus|pre|프리|chorus|hook|후렴|훅|bridge|브릿지|브리지)\s*[:：-]?\s*(.*)$/i);
+            if (match) {
+              current = normalizeChordSectionLabel(match[1]);
+              const rest = (match[2] || "").trim();
+              if (current && hasPlayableChordText(rest)) sections[current].push(rest);
+              return;
+            }
+            if (current && hasPlayableChordText(line)) sections[current].push(line);
+            else if (hasPlayableChordText(line)) unlabelled.push(line);
+          });
+        const hasLabelled = Object.values(sections).some((lines) => lines.length);
+        return {
+          hasLabelled,
+          unlabelled,
+          sections: Object.fromEntries(Object.entries(sections).map(([key, lines]) => [key, lines.join("\n")])),
+        };
+      }
+
+      function appliedChordPlan(editableChords, palette) {
+        const draft = String(editableChords || "").trim();
+        const hasUserDraft = Boolean(state.chordDraftDirty && draft && hasPlayableChordText(draft));
+        const fallback = {
+          userApplied: false,
+          note: "자동 추천 코드진행",
+          summary: [
+            "수정 반영 상태: 자동 추천 코드진행",
+            "사용자가 아래 편집 플랫폼에서 수정 후 `수정 반영`을 누르면 이 요약과 표가 사용자 코드진행 기준으로 바뀝니다.",
+          ],
+          rows: [
+            { part: "Verse", design: palette.verse.join(" "), chords: palette.verse.join(" "), basis: "도입 감정/장면 구축" },
+            { part: "Pre", design: palette.pre.join(" "), chords: palette.pre.join(" "), basis: "후렴 전 긴장 상승" },
+            { part: "Chorus", design: palette.chorus.join(" "), chords: palette.chorus.join(" "), basis: "제목 훅과 해상 지점" },
+            { part: "Bridge", design: palette.bridge.join(" "), chords: palette.bridge.join(" "), basis: "관점 전환/마지막 후렴 진입" },
+          ],
+        };
+        if (!hasUserDraft) return fallback;
+
+        const parsed = chordDraftSections(draft);
+        if (!parsed.hasLabelled) {
+          return {
+            userApplied: true,
+            note: "사용자 수정 코드진행 우선 반영",
+            summary: [
+              "수정 반영 상태: 사용자 수정 코드진행 우선",
+              "사용자 수정 전체:",
+              draft,
+              "라벨 없는 진행은 Chorus/핵심 루프로 반영됩니다. Verse:, Pre:, Chorus:, Bridge:처럼 적으면 파트별 설계 표도 각각 바뀝니다.",
+            ],
+            rows: [
+              { part: "사용자 수정 전체", design: draft, chords: draft, basis: "직접 수정값 · 작곡 설계 최우선 반영" },
+              { part: "Chorus/핵심 루프", design: draft, chords: draft, basis: "라벨 없는 수정값을 핵심 후렴 루프로 적용" },
+            ],
+          };
+        }
+
+        const sectionMeta = {
+          Verse: ["도입 감정/장면 구축", palette.verse.join(" ")],
+          Pre: ["후렴 전 긴장 상승", palette.pre.join(" ")],
+          Chorus: ["제목 훅과 해상 지점", palette.chorus.join(" ")],
+          Bridge: ["관점 전환/마지막 후렴 진입", palette.bridge.join(" ")],
+        };
+        const rows = Object.entries(sectionMeta).map(([part, [basis, fallbackChords]]) => {
+          const design = parsed.sections[part] || fallbackChords;
+          return {
+            part,
+            design,
+            chords: design,
+            basis: parsed.sections[part] ? `사용자 수정 ${part} 반영` : `${basis} · 자동 보조안`,
+          };
+        });
+        return {
+          userApplied: true,
+          note: "사용자 수정 파트별 코드진행 반영",
+          summary: [
+            "수정 반영 상태: 사용자 수정 파트별 코드진행 우선",
+            "인식된 파트:",
+            ...rows.map((row) => `${row.part}: ${row.design}`),
+          ],
+          rows,
+        };
+      }
+
       function loadChordDraft() {
         state.chordDraft = localStorage.getItem(CHORD_DRAFT_KEY) || "";
         state.chordDraftDirty = Boolean(state.chordDraft);
@@ -6850,6 +6958,7 @@
         const productionSet = shortList(songs.map((song) => accompanimentInfo(song).build || accompanimentInfo(song).method), 4);
         const rhythmSet = shortList(songs.map((song) => rhythmInfo(song).pattern || rhythmInfo(song).hook), 4);
         const editableChords = currentChordDraft(songs);
+        const appliedChords = appliedChordPlan(editableChords, palette);
         const referenceChordTableRows = referenceChordRows(songs, 6);
         const total = Math.max(1, songs.length);
         const readinessMeters = [
@@ -6864,12 +6973,6 @@
           { part: "Pre", design: "베이스 움직임과 긴장 화음으로 상승", basis: palette.name },
           { part: "Chorus", design: "제목 훅 1마디 안 노출, 5마디째 해상", basis: formatCounts(stats.topHooks.slice(0, 2)) || "후크 분석 필요" },
           { part: "Bridge", design: "시점 전환과 borrowed/secondary dominant 1회", basis: palette.goal },
-        ];
-        const chordTable = [
-          { part: "Verse", design: palette.verse.join(" "), chords: palette.verse.join(" "), basis: "도입 감정/장면 구축" },
-          { part: "Pre", design: palette.pre.join(" "), chords: palette.pre.join(" "), basis: "후렴 전 긴장 상승" },
-          { part: "Chorus", design: palette.chorus.join(" "), chords: palette.chorus.join(" "), basis: "제목 훅과 해상 지점" },
-          { part: "Bridge", design: palette.bridge.join(" "), chords: palette.bridge.join(" "), basis: "관점 전환/마지막 후렴 진입" },
         ];
         const cards = [
           {
@@ -6889,22 +6992,16 @@
           {
             title: "코드진행",
             value: [
-              "사용자 수정 코드진행은 아래 편집 플랫폼에서 직접 고치고 들을 수 있습니다.",
+              ...appliedChords.summary,
+              "",
               `중심키: ${palette.key || inferKeyCenter(songs)}`,
               `화성 팔레트: ${palette.name}`,
-              "Verse:",
-              ...palette.verse,
-              "Pre-Chorus:",
-              ...palette.pre,
-              "Chorus:",
-              ...palette.chorus,
-              "Bridge:",
-              ...palette.bridge,
+              `현재 설계 기준: ${appliedChords.note}`,
               "추천곡 신호는 아래 표에서 곡별 코드진행으로 듣고 비교하세요.",
             ].join("\n"),
             extra: [
               chordEditPlatform(editableChords, averageBpmNumber(songs) || 86),
-              planTable(chordTable),
+              planTable(appliedChords.rows),
               `<div class="recipe-title" style="margin-top:10px;">추천곡 코드진행 청음</div>`,
               referenceChordTableRows.length
                 ? planTable(referenceChordTableRows, { className: "reference-chord-table" })
