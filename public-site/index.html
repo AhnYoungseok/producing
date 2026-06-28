@@ -1474,6 +1474,22 @@
         background: #fff;
       }
 
+      .candidate-row .selected-actions {
+        flex-wrap: wrap;
+      }
+
+      .candidate-row .final-select-button {
+        flex: 1 1 150px;
+        min-height: 36px;
+      }
+
+      .candidate-action-note {
+        color: var(--teal-dark);
+        font-size: 11px;
+        font-weight: 900;
+        line-height: 1.35;
+      }
+
       .selected-insight {
         display: grid;
         gap: 8px;
@@ -6690,11 +6706,12 @@
                 <div>
                   <div class="selected-title">${escapeHtml(song.title)}</div>
                   <div class="selected-meta">${escapeHtml(song.artist)} · ${escapeHtml(song.genre || "-")} · ${escapeHtml(song.bpm || "-")} BPM · ${escapeHtml(song.key || "Key 미입력")}</div>
+                  <div class="candidate-action-note">들어보고 마음에 들면 바로 최종 곡으로 담으세요.</div>
                 </div>
                 <div class="selected-actions">
                   <button class="secondary" type="button" data-preview="${escapeHtml(key)}">현재 페이지에서 듣기</button>
                   <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
-                  <button class="final-select-button" type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 선택곡에 담김" : "최종 선택곡에 담기"}</button>
+                  <button class="final-select-button" type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 곡에 담김" : "최종 곡에 담기"}</button>
                 </div>
               </div>
             `;
@@ -6703,7 +6720,7 @@
         target.innerHTML = `
           <div class="section-mini-head">
             <span>유형 맞춤 후보곡 20</span>
-            <span class="small">여기서 고른 곡만 아래 최종 선택곡에 모입니다.</span>
+            <span class="small">각 후보곡의 최종 곡에 담기 버튼을 누르면 아래 최종 선택곡에 바로 모입니다.</span>
           </div>
           <div class="candidate-pool-body">${rows}</div>
         `;

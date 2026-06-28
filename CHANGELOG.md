@@ -14,6 +14,7 @@
 
 - Added public-site visual graph panels for concept radar, current reference-library distributions, and selected-reference combination analysis so concept, genre, BPM, year, confidence, key, hook, and risk signals are visible at a glance.
 - Added a public-site candidate-to-final selection flow so type-matched 20-song recommendations and manually chosen references gather into one final-pick panel before brief/detail generation.
+- Added explicit `최종 곡에 담기` actions to every type-matched 20-song candidate row so recommended candidates can be moved into the final selected-song set without searching again.
 - Added clearer `최종 선택곡에 담기` buttons on both candidate recommendations and searched reference cards, plus an explicit rule panel stating that briefs and composition plans use only final selected-song analysis/statistics.
 - Added an editable public-site chord design pad inside the composition plan, with local Web Audio chord playback and stop controls for auditioning revised progressions without using original-song audio.
 - Added a right-side public-site creation workspace that groups the creative brief, composition plan, chord editing, and audition controls into a structured desktop rail.
@@ -76,6 +77,7 @@
 - Public-site local browser layout check passed: the creative brief/composition workspace renders as a right-side sticky rail on desktop, with no console errors and no literal `undefined`, `null`, or `NaN`.
 - Public-site local browser check passed for the YouTube preview fallback: preview buttons open the in-page panel, search-only rows show the direct-link input and YouTube search action, and no console errors occurred.
 - Public-site local browser check passed for preview-to-final-pick flow: `현재 페이지에서 듣기` opens the preview panel, `이 곡을 최종 선택곡에 담기` adds the song, disables itself as selected, updates the selected count, and activates the composition plan.
+- Public-site local browser check passed for type-matched candidate rows: `유형 맞춤 20곡` renders 20 direct `최종 곡에 담기` buttons, clicking one moves it into the final selected-song set, disables the source row, and activates the composition plan.
 - Public-site local HTTP browser check passed: 80 reference cards rendered, automatic hook panels and mood-coordinate recommendations were visible, no console errors were reported, and no literal `undefined`, `null`, or `NaN` appeared.
 - Public-site mood coordinate keyboard adjustment changed the creation brief in-browser without console errors.
 - Backend tests passed with `AUTO_REFERENCE_BATCH_ENABLED=false`: 27 tests.
