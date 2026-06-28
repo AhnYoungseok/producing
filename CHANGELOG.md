@@ -16,6 +16,7 @@
 - Added a public-site candidate-to-final selection flow so type-matched 20-song recommendations and manually chosen references gather into one final-pick panel before brief/detail generation.
 - Added clearer `최종 선택곡에 담기` buttons on both candidate recommendations and searched reference cards, plus an explicit rule panel stating that briefs and composition plans use only final selected-song analysis/statistics.
 - Added an editable public-site chord design pad inside the composition plan, with local Web Audio chord playback and stop controls for auditioning revised progressions without using original-song audio.
+- Added a right-side public-site creation workspace that groups the creative brief, composition plan, chord editing, and audition controls into a structured desktop rail.
 - Added public-site automatic chorus/hook candidate panels for each reference card, showing likely chorus windows, hook strength, lyric-structure hints, melody/rhythm cues, chord hints, creative-use notes, and confidence without storing full lyrics or extracting YouTube audio.
 - Added public-site selected-reference combination analysis with average BPM, common key, common chord family, hook type, mood, arrangement signals, conflict notes, and arrangement risk before generating the brief.
 - Added mood-coordinate recommendations to the public-site concept graph, mapping dark/bright and calm/intense drag values into BPM, key, chord color, hook style, arrangement, and brief tone.
@@ -40,6 +41,7 @@
 - Strengthened the public-site creation brief so it now includes selected-song combination analysis, automatic chorus/hook candidate analysis, and a 20-part composer brief ending with concrete 30-minute production instructions.
 - Changed public-site brief generation so final selected songs are the primary source for the detailed brief and composition plan, while type-matched songs remain a candidate pool until explicitly chosen.
 - Changed public-site composition-plan data sourcing so candidate pools, search results, concept matches, and default hit lists are never used for detailed brief/composition design until the user adds songs to the final-pick panel.
+- Changed the public-site desktop layout so concept/final-pick work stays on the left, the creative brief/composition design stays on the right, and reference search moves into a wider full-width panel below.
 - Changed the public-site concept graph labels to the requested emotion-space model: dark to bright on the X axis and calm to intense on the Y axis, with keyboard arrow support in addition to mouse/touch drag.
 - Changed public-site reference cards so automatic hook candidates appear before the detailed analysis strip, making chorus/hook, chord, melody, rhythm, and accompaniment signals visible without opening every detail panel.
 - Optimized public-site concept selection so button state updates immediately while heavy recommendation and brief regeneration are debounced and cached.
@@ -69,6 +71,7 @@
 - Public-site script syntax check passed with `node --check`.
 - Public-site local browser check passed for candidate pool creation, final-pick selection, detailed brief generation, editable chord plan updates, Web Audio chord playback/stop controls, and no console errors.
 - Public-site local browser check passed for final-selected-only design behavior: no selected songs keeps the plan/chord editor empty, searched reference cards and type-matched candidate rows both add songs through `최종 선택곡에 담기`, and generated plans use the selected-song set.
+- Public-site local browser layout check passed: the creative brief/composition workspace renders as a right-side sticky rail on desktop, with no console errors and no literal `undefined`, `null`, or `NaN`.
 - Public-site local HTTP browser check passed: 80 reference cards rendered, automatic hook panels and mood-coordinate recommendations were visible, no console errors were reported, and no literal `undefined`, `null`, or `NaN` appeared.
 - Public-site mood coordinate keyboard adjustment changed the creation brief in-browser without console errors.
 - Backend tests passed with `AUTO_REFERENCE_BATCH_ENABLED=false`: 27 tests.
