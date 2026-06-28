@@ -9,6 +9,7 @@
 - Corrected public-site chord audition voicing so `add9` chords no longer imply a dominant seventh and slash chords render their bass note separately.
 - Tightened public-site chord playback accuracy with a fuller chord parser for `6/9`, slash bass, altered tensions, omissions, power chords, and progression-aware voice leading.
 - Added per-section playback buttons to the public-site composition chord table so Verse, Pre, Chorus, and Bridge progressions can be auditioned independently.
+- Added an in-plan editable user chord-progression platform and per-reference chord-progression audition buttons so both revised progressions and selected recommendation signals can be heard directly.
 - Rebuilt Composer Coach concept flow around structured archetypes, reset support, concept-aware reference matching, and harmony briefs that vary from the matched reference statistics.
 - Changed the default auto-reference batch settings to safe development defaults: disabled and no startup run unless explicitly enabled by environment variables.
 - Replaced broken Hook Lab UI copy and backend Hook Lab fallback strings so loading, error, empty, search, filter, confidence, and pagination states are readable.

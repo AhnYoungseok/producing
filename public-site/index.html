@@ -1583,6 +1583,66 @@
         background: #fbfdff;
       }
 
+      .inline-chord-platform {
+        display: grid;
+        gap: 9px;
+        margin-top: 10px;
+        border: 1px solid #8fd7a7;
+        border-radius: 10px;
+        padding: 10px;
+        background: linear-gradient(180deg, #effdf3, #ffffff);
+      }
+
+      .inline-chord-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .inline-chord-title {
+        color: #14532d;
+        font-size: 13px;
+        font-weight: 950;
+      }
+
+      .inline-chord-help {
+        margin-top: 3px;
+        color: #3f6f4e;
+        font-size: 12px;
+        font-weight: 750;
+        line-height: 1.4;
+      }
+
+      .inline-chord-platform textarea {
+        width: 100%;
+        min-height: 128px;
+        resize: vertical;
+        border: 1px solid #9ddbb0;
+        border-radius: 8px;
+        padding: 10px;
+        background: #fbfffc;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .inline-chord-controls {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+        gap: 8px;
+        align-items: center;
+      }
+
+      .inline-chord-controls input {
+        min-width: 0;
+        height: 36px;
+        border: 1px solid #9ddbb0;
+        border-radius: 8px;
+        padding: 0 9px;
+        background: #fbfffc;
+      }
+
       .youtube-preview {
         display: grid;
         gap: 8px;
@@ -1809,6 +1869,11 @@
 
       .part-play-button:hover {
         background: #d8f8e4;
+      }
+
+      .reference-chord-table .plan-chord-cell span {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        white-space: pre-wrap;
       }
 
       .plan-meter-grid {
@@ -2049,7 +2114,8 @@
         .mood-recommendation-grid,
         .graph-grid,
         .radar-wrap,
-        .composer-editor-row {
+        .composer-editor-row,
+        .inline-chord-controls {
           grid-template-columns: 1fr;
         }
 
@@ -2228,22 +2294,6 @@
                   </div>
                 </div>
                 <div id="songPlanBody" class="song-plan-body"></div>
-                <div class="composer-editor" aria-label="코드 진행 수정 및 청음">
-                  <div>
-                    <div class="recipe-title">핵심 코드진행 수정 / 정확 청음</div>
-                    <div class="small">Verse, Pre, Chorus, Bridge 코드진행을 슬래시 베이스, sus, 6/7/maj7/9/add9 텐션을 반영한 피아노 보이싱으로 듣습니다. 원곡 오디오는 사용하지 않습니다.</div>
-                  </div>
-                  <div class="composer-editor-row">
-                    <textarea id="chordEditor" placeholder="예) | Cadd9 | G/B | Am7 | Fadd9 |"></textarea>
-                    <input id="chordBpmInput" inputmode="numeric" placeholder="BPM" value="86" />
-                  </div>
-                  <div id="chordVoicePreview" class="chord-voice-preview" aria-label="코드 보이싱 미리보기"></div>
-                  <div class="song-actions">
-                    <button id="applyChordDraftButton" class="secondary" type="button">설계에 반영</button>
-                    <button id="playChordDraftButton" type="button">핵심 코드진행 재생</button>
-                    <button id="stopChordDraftButton" class="ghost" type="button">정지</button>
-                  </div>
-                </div>
               </aside>
               <div id="youtubePreview" class="youtube-preview empty">곡 카드의 미리듣기 버튼을 누르면 공식 YouTube 임베드 또는 링크 등록 패널이 이 자리에 열립니다.</div>
             </div>
@@ -6293,6 +6343,31 @@
           .join("\n");
       }
 
+      function hasPlayableChordText(text) {
+        return chordTokens(text).some((token) => parseChordSymbol(token));
+      }
+
+      function referenceChordRows(songs, limit = 6) {
+        return sortByHitPriority(songs)
+          .slice(0, limit)
+          .map((song, index) => {
+            const analysis = songChordAnalysis(song);
+            const melody = hookMelodyInfo(song);
+            const progression = firstPresent(analysis.loop, analysis.chorus, analysis.verse, analysis.suggested);
+            const roman = firstPresent(analysis.roman.loop, analysis.roman.chorus, analysis.roman.verse, "Roman 변환 필요");
+            return {
+              part: `${index + 1}. ${song.title} - ${song.artist}`,
+              design: progression || "코드진행 분석 필요",
+              chords: hasPlayableChordText(progression) ? progression : "",
+              playLabel: "추천곡 코드진행 듣기",
+              basis: [
+                `Roman: ${roman}`,
+                `후크 멜로디: ${melody.contour || melody.interval || "후크 멜로디 분석 필요"}`,
+              ].join("\n"),
+            };
+          });
+      }
+
       function defaultEditableChords(songs) {
         const palette = harmonyPalette(songs);
         return palette.chorus.join("\n");
@@ -6315,21 +6390,39 @@
       }
 
       function syncChordEditor(songs = referenceSongsForBrief(), force = false) {
-        const editor = $("chordEditor");
-        if (!editor) return;
-        if (force || !state.chordDraftDirty || !editor.value.trim()) {
-          editor.value = currentChordDraft(songs);
-        }
-        const bpmInput = $("chordBpmInput");
-        if (bpmInput && !bpmInput.value.trim()) {
-          bpmInput.value = String(averageBpmNumber(songs) || 86);
-        }
+        const nextValue = currentChordDraft(songs);
+        [$("chordEditor"), $("planChordEditor")].filter(Boolean).forEach((editor) => {
+          if (force || !state.chordDraftDirty || !editor.value.trim()) {
+            editor.value = nextValue;
+          }
+        });
+        const nextBpm = String(averageBpmNumber(songs) || 86);
+        [$("chordBpmInput"), $("planChordBpmInput")].filter(Boolean).forEach((input) => {
+          if (!input.value.trim()) input.value = nextBpm;
+        });
         renderChordVoicePreview();
       }
 
+      function syncChordEditorsFrom(source) {
+        if (!source) return;
+        const value = source.value;
+        [$("chordEditor"), $("planChordEditor")].filter(Boolean).forEach((editor) => {
+          if (editor !== source) editor.value = value;
+        });
+      }
+
+      function syncChordBpmFrom(source) {
+        if (!source) return;
+        const value = source.value;
+        [$("chordBpmInput"), $("planChordBpmInput")].filter(Boolean).forEach((input) => {
+          if (input !== source) input.value = value;
+        });
+      }
+
       function applyChordDraft() {
-        const editor = $("chordEditor");
+        const editor = $("planChordEditor") || $("chordEditor");
         if (!editor) return;
+        syncChordEditorsFrom(editor);
         saveChordDraft(editor.value);
         renderSongPlan(referenceSongsForBrief());
         renderChordVoicePreview();
@@ -6472,9 +6565,9 @@
         return chordVoicing(symbol).notes;
       }
 
-      function renderChordVoicePreview() {
-        const target = $("chordVoicePreview");
-        const editor = $("chordEditor");
+      function renderChordVoicePreviewFor(editorId, targetId) {
+        const target = $(targetId);
+        const editor = $(editorId);
         if (!target || !editor) return;
         const chords = chordTokens(editor.value).filter((token) => parseChordSymbol(token)).slice(0, 16);
         if (!chords.length) {
@@ -6510,6 +6603,11 @@
         `;
       }
 
+      function renderChordVoicePreview() {
+        renderChordVoicePreviewFor("chordEditor", "chordVoicePreview");
+        renderChordVoicePreviewFor("planChordEditor", "planChordVoicePreview");
+      }
+
       function stopChordPlayback() {
         if (state.chordAudio?.timeout) window.clearTimeout(state.chordAudio.timeout);
         try {
@@ -6535,7 +6633,7 @@
         }
         const context = new AudioContextClass();
         if (context.state === "suspended" && context.resume) context.resume();
-        const bpm = numericValue($("chordBpmInput")?.value, averageBpmNumber(referenceSongsForBrief()) || 86);
+        const bpm = numericValue($("planChordBpmInput")?.value || $("chordBpmInput")?.value, averageBpmNumber(referenceSongsForBrief()) || 86);
         const chordDuration = Math.max(0.72, (60 / Math.max(40, bpm)) * 2);
         const master = context.createGain();
         const filter = context.createBiquadFilter();
@@ -6594,14 +6692,19 @@
       }
 
       function playChordDraft() {
-        const editor = $("chordEditor");
+        const editor = $("planChordEditor") || $("chordEditor");
         if (!editor) return;
+        syncChordEditorsFrom(editor);
         playChordText(editor.value, "핵심 코드진행");
       }
 
       function renderSongPlan(songs = referenceSongsForBrief()) {
         const body = $("songPlanBody");
         if (!body) return;
+        const liveChordEditor = $("planChordEditor") || $("chordEditor");
+        if (state.chordDraftDirty && liveChordEditor?.value.trim()) {
+          state.chordDraft = liveChordEditor.value.trim();
+        }
 
         const renderPlanCards = (cards) =>
           cards
@@ -6618,11 +6721,11 @@
 
         const chordPlayButton = (row) =>
           row.chords
-            ? `<button class="part-play-button" type="button" data-play-section="${escapeHtml(encodeURIComponent(row.part))}" data-play-section-chords="${escapeHtml(encodeURIComponent(row.chords))}">이 파트 듣기</button>`
+            ? `<button class="part-play-button" type="button" data-play-section="${escapeHtml(encodeURIComponent(row.part))}" data-play-section-chords="${escapeHtml(encodeURIComponent(row.chords))}">${escapeHtml(row.playLabel || "이 파트 듣기")}</button>`
             : "";
 
-        const planTable = (rows) => `
-          <table class="plan-table">
+        const planTable = (rows, options = {}) => `
+          <table class="plan-table ${escapeHtml(options.className || "")}">
             <thead>
               <tr>
                 <th>파트</th>
@@ -6664,6 +6767,25 @@
                 `
               )
               .join("")}
+          </div>
+        `;
+
+        const chordEditPlatform = (value, bpm) => `
+          <div class="inline-chord-platform" aria-label="사용자 수정 코드진행 편집 플랫폼">
+            <div class="inline-chord-head">
+              <div>
+                <div class="inline-chord-title">사용자 수정 코드진행</div>
+                <div class="inline-chord-help">이 칸에서 직접 코드진행을 고치고 바로 들으세요. 저장하면 아래 작곡 설계와 보이싱 미리보기에 반영됩니다.</div>
+              </div>
+            </div>
+            <textarea id="planChordEditor" spellcheck="false" placeholder="예) | Cadd9 | G/B | Am7 | Fadd9 |">${escapeHtml(value || "")}</textarea>
+            <div class="inline-chord-controls">
+              <input id="planChordBpmInput" inputmode="numeric" placeholder="BPM" value="${escapeHtml(String(bpm || ""))}" />
+              <button class="secondary" type="button" data-apply-plan-chords>수정 반영</button>
+              <button type="button" data-play-plan-chords>수정 코드진행 듣기</button>
+              <button class="ghost" type="button" data-stop-plan-chords>정지</button>
+            </div>
+            <div id="planChordVoicePreview" class="chord-voice-preview" aria-label="수정 코드진행 보이싱 미리보기"></div>
           </div>
         `;
 
@@ -6727,8 +6849,8 @@
         const instrumentSet = shortList(songs.map((song) => accompanimentInfo(song).instrumentation), 5);
         const productionSet = shortList(songs.map((song) => accompanimentInfo(song).build || accompanimentInfo(song).method), 4);
         const rhythmSet = shortList(songs.map((song) => rhythmInfo(song).pattern || rhythmInfo(song).hook), 4);
-        const referenceRows = planReferenceRows(songs, 4) || "참고곡 코드진행 분석 필요";
         const editableChords = currentChordDraft(songs);
+        const referenceChordTableRows = referenceChordRows(songs, 6);
         const total = Math.max(1, songs.length);
         const readinessMeters = [
           { label: "코드", value: (stats.chordCount / total) * 100 },
@@ -6767,9 +6889,7 @@
           {
             title: "코드진행",
             value: [
-              "사용자 수정 코드:",
-              editableChords,
-              "",
+              "사용자 수정 코드진행은 아래 편집 플랫폼에서 직접 고치고 들을 수 있습니다.",
               `중심키: ${palette.key || inferKeyCenter(songs)}`,
               `화성 팔레트: ${palette.name}`,
               "Verse:",
@@ -6780,11 +6900,16 @@
               ...palette.chorus,
               "Bridge:",
               ...palette.bridge,
-              "",
-              "추천곡 신호:",
-              referenceRows,
+              "추천곡 신호는 아래 표에서 곡별 코드진행으로 듣고 비교하세요.",
             ].join("\n"),
-            extra: planTable(chordTable),
+            extra: [
+              chordEditPlatform(editableChords, averageBpmNumber(songs) || 86),
+              planTable(chordTable),
+              `<div class="recipe-title" style="margin-top:10px;">추천곡 코드진행 청음</div>`,
+              referenceChordTableRows.length
+                ? planTable(referenceChordTableRows, { className: "reference-chord-table" })
+                : `<div class="empty">추천곡 코드진행 분석 필요</div>`,
+            ].join(""),
           },
           {
             title: "핵심가사",
@@ -7107,20 +7232,47 @@
 
         $("randomButton").addEventListener("click", chooseRandom);
         $("recipeButton").addEventListener("click", () => buildRecipe(true));
-        $("applyChordDraftButton").addEventListener("click", applyChordDraft);
-        $("playChordDraftButton").addEventListener("click", playChordDraft);
-        $("stopChordDraftButton").addEventListener("click", stopChordPlayback);
+        if ($("applyChordDraftButton")) $("applyChordDraftButton").addEventListener("click", applyChordDraft);
+        if ($("playChordDraftButton")) $("playChordDraftButton").addEventListener("click", playChordDraft);
+        if ($("stopChordDraftButton")) $("stopChordDraftButton").addEventListener("click", stopChordPlayback);
         $("songPlanBody").addEventListener("click", (event) => {
+          if (event.target.closest("[data-apply-plan-chords]")) {
+            applyChordDraft();
+            return;
+          }
+          if (event.target.closest("[data-play-plan-chords]")) {
+            playChordDraft();
+            return;
+          }
+          if (event.target.closest("[data-stop-plan-chords]")) {
+            stopChordPlayback();
+            return;
+          }
           const button = event.target.closest("[data-play-section-chords]");
           if (!button) return;
           const part = decodeURIComponent(button.dataset.playSection || "파트");
           const chords = decodeURIComponent(button.dataset.playSectionChords || "");
           playChordText(chords, part);
         });
-        $("chordEditor").addEventListener("input", () => {
-          state.chordDraftDirty = true;
-          renderChordVoicePreview();
+        $("songPlanBody").addEventListener("input", (event) => {
+          const planEditor = event.target.closest("#planChordEditor");
+          if (planEditor) {
+            state.chordDraftDirty = true;
+            syncChordEditorsFrom(planEditor);
+            renderChordVoicePreview();
+            return;
+          }
+          const planBpmInput = event.target.closest("#planChordBpmInput");
+          if (planBpmInput) syncChordBpmFrom(planBpmInput);
         });
+        if ($("chordEditor")) {
+          $("chordEditor").addEventListener("input", () => {
+            state.chordDraftDirty = true;
+            syncChordEditorsFrom($("chordEditor"));
+            renderChordVoicePreview();
+          });
+        }
+        if ($("chordBpmInput")) $("chordBpmInput").addEventListener("input", () => syncChordBpmFrom($("chordBpmInput")));
         $("youtubePreview").addEventListener("click", (event) => {
           const addButton = event.target.closest("[data-preview-add]");
           if (addButton) {
