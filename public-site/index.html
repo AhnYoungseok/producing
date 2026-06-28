@@ -1525,6 +1525,63 @@
         background: #fbfdff;
       }
 
+      .youtube-preview {
+        display: grid;
+        gap: 8px;
+        border: 1px solid #cfe7e4;
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .youtube-preview.empty {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .youtube-preview-title {
+        color: var(--teal-dark);
+        font-size: 13px;
+        font-weight: 950;
+      }
+
+      .youtube-preview-meta {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .youtube-preview-frame {
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #0f172a;
+        aspect-ratio: 16 / 9;
+      }
+
+      .youtube-preview-frame iframe {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
+      .youtube-link-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+      }
+
+      .youtube-link-row input {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 9px;
+        background: #fbfdff;
+      }
+
       .selected-title {
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1933,6 +1990,7 @@
                   <span>4 청음</span>
                 </div>
               </div>
+              <div id="youtubePreview" class="youtube-preview empty">곡 카드의 `현재 페이지에서 듣기`를 누르면 공식 YouTube 임베드로 이 자리에서 미리 들을 수 있습니다.</div>
               <div class="recipe">
                 <div class="recipe-head">
                   <div class="recipe-title">창작 브리프</div>
@@ -2093,6 +2151,7 @@
         chordDraft: "",
         chordDraftDirty: false,
         chordAudio: null,
+        previewSongKey: "",
         conceptWorkTimer: 0,
         conceptCache: new Map(),
         activePreset: "hit",
@@ -2103,6 +2162,7 @@
       const songSearchTextCache = new WeakMap();
 
       const editableAnalysisFields = [
+        "youtube_url",
         "chorus_excerpt",
         "hook_lyric_excerpt",
         "chorus_excerpt_source",
@@ -2916,6 +2976,8 @@
         if (!key) return;
         const values = Object.fromEntries(new FormData(form).entries());
         const clean = cleanAnalysisValues(values);
+        const existing = state.analysisEdits[key] || {};
+        if (existing.youtube_url && !clean.youtube_url) clean.youtube_url = existing.youtube_url;
         if (Object.keys(clean).length) {
           state.analysisEdits[key] = clean;
           updateSongEverywhere(key, clean);
@@ -3457,6 +3519,97 @@
         return song.youtube_url || `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.artist} ${song.title} official`)}`;
       }
 
+      function youtubeVideoId(url) {
+        if (!url) return "";
+        try {
+          const parsed = new URL(url, window.location.href);
+          const host = parsed.hostname.replace(/^www\./, "");
+          if (host === "youtu.be") {
+            return parsed.pathname.split("/").filter(Boolean)[0] || "";
+          }
+          if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
+            if (parsed.pathname === "/watch") return parsed.searchParams.get("v") || "";
+            const parts = parsed.pathname.split("/").filter(Boolean);
+            if (["embed", "shorts", "live"].includes(parts[0])) return parts[1] || "";
+          }
+        } catch {
+          return "";
+        }
+        return "";
+      }
+
+      function youtubeEmbedUrl(song) {
+        const videoId = youtubeVideoId(song.youtube_url || "");
+        return videoId ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?rel=0` : "";
+      }
+
+      function renderYoutubePreview() {
+        const target = $("youtubePreview");
+        if (!target) return;
+        const song = state.previewSongKey ? songByKey(state.previewSongKey) : null;
+        if (!song) {
+          target.className = "youtube-preview empty";
+          target.innerHTML = "곡 카드의 `현재 페이지에서 듣기`를 누르면 공식 YouTube 임베드로 이 자리에서 미리 들을 수 있습니다.";
+          return;
+        }
+        const youtube = youtubeUrl(song);
+        const embed = youtubeEmbedUrl(song);
+        target.className = "youtube-preview";
+        if (!embed) {
+          target.innerHTML = `
+            <div class="youtube-preview-title">${escapeHtml(song.title)} - ${escapeHtml(song.artist)}</div>
+            <div class="youtube-preview-meta">이 곡은 현재 저장된 직접 영상 링크가 없어서 페이지 안 재생은 아직 어렵습니다. 검색 결과에서 공식 영상을 고르면 YouTube에서 확인할 수 있습니다.</div>
+            <div class="youtube-link-row">
+              <input id="youtubeDirectInput" type="url" placeholder="공식 YouTube 영상 URL 붙여넣기" />
+              <button class="secondary" type="button" data-save-youtube="${escapeHtml(identity(song))}">저장 후 재생</button>
+            </div>
+            <div class="song-actions">
+              <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 검색으로 보기</a>
+            </div>
+          `;
+          return;
+        }
+        target.innerHTML = `
+          <div>
+            <div class="youtube-preview-title">${escapeHtml(song.title)} - ${escapeHtml(song.artist)}</div>
+            <div class="youtube-preview-meta">공식 YouTube 임베드 재생입니다. 오디오 다운로드, 추출, 분석은 하지 않습니다.</div>
+          </div>
+          <div class="youtube-preview-frame">
+            <iframe src="${escapeHtml(embed)}" title="${escapeHtml(`${song.title} - ${song.artist}`)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="song-actions">
+            <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube에서 열기</a>
+          </div>
+        `;
+      }
+
+      function previewSong(key) {
+        const song = songByKey(key);
+        if (!song) return;
+        state.previewSongKey = key;
+        renderYoutubePreview();
+        setStatus(youtubeEmbedUrl(song) ? `${song.title} - 현재 페이지에서 재생 준비됨` : `${song.title} - 직접 영상 링크가 없어 검색으로 연결합니다`);
+      }
+
+      function saveYoutubeDirectUrl(key, url) {
+        const videoId = youtubeVideoId(url);
+        if (!videoId) {
+          setStatus("watch?v=, youtu.be, shorts, live 형태의 공식 YouTube 영상 URL을 넣어주세요", true);
+          return;
+        }
+        const normalizedUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const current = state.analysisEdits[key] || {};
+        state.analysisEdits[key] = cleanAnalysisValues({ ...current, youtube_url: normalizedUrl });
+        updateSongEverywhere(key, state.analysisEdits[key]);
+        saveAnalysisEdits();
+        state.previewSongKey = key;
+        renderSongs();
+        renderCandidatePool();
+        renderSelection();
+        renderYoutubePreview();
+        setStatus("YouTube 직접 영상 링크 저장됨 - 현재 페이지에서 재생할 수 있습니다");
+      }
+
       function renderSongs() {
         state.filtered = filteredSongs();
         const visibleSongs = state.filtered.slice(0, state.renderLimit);
@@ -3538,6 +3691,7 @@
                   ${analysisEditForm(song, key)}
                 </details>
                 <div class="song-actions">
+                  <button class="secondary" type="button" data-preview="${escapeHtml(key)}">현재 페이지에서 듣기</button>
                   <button class="final-select-button" type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 선택곡에 담김" : "최종 선택곡에 담기"}</button>
                   <button class="secondary" type="button" data-auto-analysis="${escapeHtml(key)}">AI 5축 분석 초안</button>
                   <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
@@ -3899,6 +4053,7 @@
                   <div class="selected-meta">${escapeHtml(song.artist)} · ${escapeHtml(song.genre || "-")} · ${escapeHtml(song.bpm || "-")} BPM</div>
                 </div>
                 <div class="selected-actions">
+                  <button class="secondary" type="button" data-preview="${escapeHtml(key)}">현재 페이지에서 듣기</button>
                   <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
                   <button class="ghost" type="button" data-remove="${escapeHtml(key)}">삭제</button>
                 </div>
@@ -6533,6 +6688,7 @@
                   <div class="selected-meta">${escapeHtml(song.artist)} · ${escapeHtml(song.genre || "-")} · ${escapeHtml(song.bpm || "-")} BPM · ${escapeHtml(song.key || "Key 미입력")}</div>
                 </div>
                 <div class="selected-actions">
+                  <button class="secondary" type="button" data-preview="${escapeHtml(key)}">현재 페이지에서 듣기</button>
                   <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
                   <button class="final-select-button" type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 선택곡에 담김" : "최종 선택곡에 담기"}</button>
                 </div>
@@ -6674,6 +6830,11 @@
           applyPreset(button.dataset.preset);
         });
         $("candidatePool").addEventListener("click", (event) => {
+          const previewButton = event.target.closest("[data-preview]");
+          if (previewButton) {
+            previewSong(previewButton.dataset.preview);
+            return;
+          }
           const button = event.target.closest("[data-add]");
           if (!button) return;
           const song = songByKey(button.dataset.add);
@@ -6686,6 +6847,11 @@
         });
 
         $("songGrid").addEventListener("click", (event) => {
+          const previewButton = event.target.closest("[data-preview]");
+          if (previewButton) {
+            previewSong(previewButton.dataset.preview);
+            return;
+          }
           const clearButton = event.target.closest("[data-clear-analysis]");
           if (clearButton) {
             clearSongAnalysis(clearButton.dataset.clearAnalysis);
@@ -6710,6 +6876,11 @@
         });
 
         $("selectedList").addEventListener("click", (event) => {
+          const previewButton = event.target.closest("[data-preview]");
+          if (previewButton) {
+            previewSong(previewButton.dataset.preview);
+            return;
+          }
           const button = event.target.closest("[data-remove]");
           if (!button) return;
           removeSong(button.dataset.remove);
@@ -6717,10 +6888,12 @@
 
         $("clearSelectionButton").addEventListener("click", () => {
           state.selected = [];
+          state.previewSongKey = "";
           saveSelection();
           localStorage.removeItem(LAST_BRIEF_KEY);
           renderCandidatePool();
           renderSelection();
+          renderYoutubePreview();
           renderSongs();
           buildRecipe();
         });
@@ -6736,6 +6909,18 @@
         $("stopChordDraftButton").addEventListener("click", stopChordPlayback);
         $("chordEditor").addEventListener("input", () => {
           state.chordDraftDirty = true;
+        });
+        $("youtubePreview").addEventListener("click", (event) => {
+          const button = event.target.closest("[data-save-youtube]");
+          if (!button) return;
+          saveYoutubeDirectUrl(button.dataset.saveYoutube, $("youtubeDirectInput")?.value || "");
+        });
+        $("youtubePreview").addEventListener("keydown", (event) => {
+          if (event.key !== "Enter") return;
+          const input = event.target.closest("#youtubeDirectInput");
+          if (!input) return;
+          const button = $("youtubePreview").querySelector("[data-save-youtube]");
+          if (button) saveYoutubeDirectUrl(button.dataset.saveYoutube, input.value || "");
         });
         ["conceptInput", "ideaInput"].forEach((id) => {
           $(id).addEventListener("input", () => {
@@ -6769,6 +6954,7 @@
           renderSelection();
           renderConceptHints();
           buildRecipe();
+          renderYoutubePreview();
           setStatus(`정상 동기화 ${compactDate(ledger.updated_at)}`);
         } catch (error) {
           console.error(error);
