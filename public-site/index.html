@@ -821,6 +821,22 @@
         border-bottom: 1px solid var(--line);
       }
 
+      .sort-chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfdff;
+      }
+
+      .sort-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 950;
+      }
+
       .chip {
         display: inline-flex;
         align-items: center;
@@ -1639,6 +1655,7 @@
           </div>
 
           <div id="quickChips" class="chips"></div>
+          <div id="sortChips" class="sort-chips" aria-label="참고곡 정렬"></div>
 
           <div class="explore-summary">
             <div class="summary-box">
@@ -1734,6 +1751,7 @@
         conceptWorkTimer: 0,
         conceptCache: new Map(),
         activePreset: "hit",
+        sortMode: "hit",
         renderLimit: 80,
       };
 
@@ -1814,6 +1832,13 @@
         { id: "groove", label: "그루브 후크" },
         { id: "90-110", label: "90-110 BPM" },
         { id: "125-140", label: "125-140 BPM" },
+      ];
+
+      const sortModes = [
+        { id: "hit", label: "히트순" },
+        { id: "title", label: "제목순" },
+        { id: "genre", label: "장르별" },
+        { id: "year", label: "연도순" },
       ];
 
       const trendHints = [
@@ -2805,6 +2830,36 @@
         return [...songs].sort((a, b) => timeValue(b) - timeValue(a));
       }
 
+      function yearValue(song) {
+        return numericValue(song.release_year || song.year, 0);
+      }
+
+      function sortReferenceRows(songs) {
+        if (state.activePreset === "latest") return sortByLatest(songs);
+        if (state.sortMode === "title") {
+          return [...songs].sort((a, b) => {
+            const titleDiff = String(a.title || "").localeCompare(String(b.title || ""), "ko", { numeric: true });
+            if (titleDiff) return titleDiff;
+            return String(a.artist || "").localeCompare(String(b.artist || ""), "ko", { numeric: true });
+          });
+        }
+        if (state.sortMode === "genre") {
+          return [...songs].sort((a, b) => {
+            const genreDiff = String(a.genre || "zzz").localeCompare(String(b.genre || "zzz"), "ko", { numeric: true });
+            if (genreDiff) return genreDiff;
+            return hitScore(b) - hitScore(a);
+          });
+        }
+        if (state.sortMode === "year") {
+          return [...songs].sort((a, b) => {
+            const yearDiff = yearValue(b) - yearValue(a);
+            if (yearDiff) return yearDiff;
+            return hitScore(b) - hitScore(a);
+          });
+        }
+        return sortByHitPriority(songs);
+      }
+
       function matchesPreset(song) {
         const preset = state.activePreset;
         if (!preset || preset === "all" || preset === "hit" || preset === "latest") return true;
@@ -2850,7 +2905,7 @@
             (!confidence || song.data_confidence === confidence)
           );
         });
-        return state.activePreset === "latest" ? sortByLatest(rows) : sortByHitPriority(rows);
+        return sortReferenceRows(rows);
       }
 
       function topCounts(songs, mapper, limit = 3) {
@@ -2960,6 +3015,13 @@
               `<button class="chip ${state.activePreset === preset.id ? "active" : ""}" type="button" data-preset="${preset.id}">${preset.label}</button>`
           )
           .join("");
+        $("sortChips").innerHTML = [
+          `<span class="sort-label">정렬</span>`,
+          ...sortModes.map(
+            (mode) =>
+              `<button class="chip ${state.sortMode === mode.id ? "active" : ""}" type="button" data-sort="${mode.id}">${mode.label}</button>`
+          ),
+        ].join("");
       }
 
       function songTags(song) {
@@ -5820,6 +5882,7 @@
       function applyPreset(id) {
         state.activePreset = state.activePreset === id ? "hit" : id;
         state.renderLimit = 80;
+        if (id === "hit") state.sortMode = "hit";
         if (id === "all") {
           $("searchInput").value = "";
           $("countryFilter").value = "";
@@ -5835,6 +5898,15 @@
         if (state.activePreset === "125-140") $("bpmFilter").value = "dance";
         renderChips();
         renderSongs();
+      }
+
+      function applySortMode(id) {
+        if (!sortModes.some((mode) => mode.id === id)) return;
+        state.sortMode = id;
+        state.renderLimit = 80;
+        renderChips();
+        renderSongs();
+        setStatus(`${sortModes.find((mode) => mode.id === id)?.label || "정렬"} 적용`);
       }
 
       function wireEvents() {
@@ -5862,6 +5934,11 @@
           const button = event.target.closest("[data-preset]");
           if (!button) return;
           applyPreset(button.dataset.preset);
+        });
+        $("sortChips").addEventListener("click", (event) => {
+          const button = event.target.closest("[data-sort]");
+          if (!button) return;
+          applySortMode(button.dataset.sort);
         });
 
         $("songGrid").addEventListener("click", (event) => {
