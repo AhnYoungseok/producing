@@ -11,6 +11,7 @@
 - Added per-section playback buttons to the public-site composition chord table so Verse, Pre, Chorus, and Bridge progressions can be auditioned independently.
 - Added an in-plan editable user chord-progression platform and per-reference chord-progression audition buttons so both revised progressions and selected recommendation signals can be heard directly.
 - Fixed the public-site composition-plan chord summary so pressing `수정 반영` replaces the displayed progression table with the user's edited progression instead of continuing to show the original generated palette.
+- Changed the public-site second-priority conditional reference search into a full-width single panel with a wider desktop card grid.
 - Rebuilt Composer Coach concept flow around structured archetypes, reset support, concept-aware reference matching, and harmony briefs that vary from the matched reference statistics.
 - Changed the default auto-reference batch settings to safe development defaults: disabled and no startup run unless explicitly enabled by environment variables.
 - Replaced broken Hook Lab UI copy and backend Hook Lab fallback strings so loading, error, empty, search, filter, confidence, and pagination states are readable.
