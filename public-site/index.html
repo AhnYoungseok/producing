@@ -2091,7 +2091,7 @@
       <div class="workspace">
         <section class="panel composer-panel">
           <div class="panel-head">
-            <h2>조합하기 · 핵심 코드 작업대</h2>
+            <h2>조합하기 · 핵심 코드진행 작업대</h2>
           </div>
           <div class="composer-body">
             <div class="concept-lab">
@@ -2152,7 +2152,7 @@
               <textarea id="ideaInput" placeholder="내 곡 키워드: 예) 밤 산책, 후회 없는 이별, 120 BPM 댄스팝"></textarea>
               <div class="action-row">
                 <button id="randomButton" class="secondary" type="button">유형 맞춤 20곡</button>
-                <button id="recipeButton" type="button">핵심 코드 생성</button>
+                <button id="recipeButton" type="button">핵심 코드진행 생성</button>
               </div>
             </div>
             <div id="candidatePool" class="candidate-pool"></div>
@@ -2203,11 +2203,11 @@
             <div class="brief-layout">
               <div class="creation-rail-head">
                 <div class="creation-rail-title">창작 작업대</div>
-                <div class="small">최종 선택곡 통계로 핵심 코드 설계를 만들고, 바로 아래에서 수정·청음합니다.</div>
+                <div class="small">최종 선택곡 통계로 핵심 코드진행을 만들고, 바로 아래에서 파트별로 수정·청음합니다.</div>
                 <div class="creation-rail-flow" aria-label="창작 작업 흐름">
                   <span>1 최종곡</span>
-                  <span>2 핵심 코드</span>
-                  <span>3 코드 수정</span>
+                  <span>2 핵심 코드진행</span>
+                  <span>3 진행 수정</span>
                   <span>4 정확 청음</span>
                 </div>
               </div>
@@ -2216,7 +2216,7 @@
                   <span>최종 선택곡</span>
                   <button id="clearSelectionButton" class="ghost" type="button">최종곡 비우기</button>
                 </div>
-                <div class="selection-rule">핵심 코드 생성과 작곡 설계는 이 영역에 담긴 최종 선택곡의 코드/후크/멜로디/가사/편곡 분석과 통계만 사용합니다.</div>
+                <div class="selection-rule">핵심 코드진행 생성과 작곡 설계는 이 영역에 담긴 최종 선택곡의 코드/후크/멜로디/가사/편곡 분석과 통계만 사용합니다.</div>
                 <div id="selectedList" class="selected-list"></div>
                 <div id="selectedInsight" class="selected-insight"></div>
               </section>
@@ -2224,14 +2224,14 @@
                 <div class="recipe-head">
                   <div>
                     <div class="recipe-title">작곡 설계 요약</div>
-                    <div class="small">구조 · 핵심 코드 · 보이싱 · 반주 악기</div>
+                    <div class="small">구조 · 핵심 코드진행 · 보이싱 · 반주 악기</div>
                   </div>
                 </div>
                 <div id="songPlanBody" class="song-plan-body"></div>
                 <div class="composer-editor" aria-label="코드 진행 수정 및 청음">
                   <div>
-                    <div class="recipe-title">핵심 코드 수정 / 정확 청음</div>
-                    <div class="small">슬래시 베이스, sus, 6/7/maj7/9/add9 텐션을 반영한 피아노 보이싱으로 듣습니다. 원곡 오디오는 사용하지 않습니다.</div>
+                    <div class="recipe-title">핵심 코드진행 수정 / 정확 청음</div>
+                    <div class="small">Verse, Pre, Chorus, Bridge 코드진행을 슬래시 베이스, sus, 6/7/maj7/9/add9 텐션을 반영한 피아노 보이싱으로 듣습니다. 원곡 오디오는 사용하지 않습니다.</div>
                   </div>
                   <div class="composer-editor-row">
                     <textarea id="chordEditor" placeholder="예) | Cadd9 | G/B | Am7 | Fadd9 |"></textarea>
@@ -2240,7 +2240,7 @@
                   <div id="chordVoicePreview" class="chord-voice-preview" aria-label="코드 보이싱 미리보기"></div>
                   <div class="song-actions">
                     <button id="applyChordDraftButton" class="secondary" type="button">설계에 반영</button>
-                    <button id="playChordDraftButton" type="button">핵심 코드 재생</button>
+                    <button id="playChordDraftButton" type="button">핵심 코드진행 재생</button>
                     <button id="stopChordDraftButton" class="ghost" type="button">정지</button>
                   </div>
                 </div>
@@ -2248,7 +2248,7 @@
               <div id="youtubePreview" class="youtube-preview empty">곡 카드의 미리듣기 버튼을 누르면 공식 YouTube 임베드 또는 링크 등록 패널이 이 자리에 열립니다.</div>
             </div>
             <p class="small">
-              핵심 코드 설계는 최종 선택곡의 코드/화성, 곡 구조, 후크 신호를 우선합니다. 먼저 유형 맞춤 후보곡을 보고, 부족할 때 바로 아래 조건 검색 참고곡에서 더 찾아 담으세요.
+              핵심 코드진행은 최종 선택곡의 코드/화성, 곡 구조, 후크 신호를 우선합니다. 먼저 유형 맞춤 후보곡을 보고, 부족할 때 바로 아래 조건 검색 참고곡에서 더 찾아 담으세요.
             </p>
           </div>
         </section>
@@ -2273,7 +2273,7 @@
               <div class="metric">
                 <div class="metric-label">선택한 참고곡</div>
                 <div id="selectedCountMetric" class="metric-value">0</div>
-                <div class="metric-hint">핵심 코드 기준</div>
+                <div class="metric-hint">핵심 코드진행 기준</div>
               </div>
               <div class="metric">
                 <div class="metric-label">마지막 추가</div>
@@ -4563,7 +4563,7 @@
       }
 
       function axisDragSummary() {
-        if (!hasAxisOverrides()) return "점을 드래그하면 감정축, 추천곡, 핵심 코드 설계가 즉시 바뀝니다.";
+        if (!hasAxisOverrides()) return "점을 드래그하면 감정축, 추천곡, 핵심 코드진행 설계가 즉시 바뀝니다.";
         const axes = state.axisOverrides;
         const highAxes = conceptAxes
           .map((axis) => ({ ...axis, value: Math.round(axes[axis.id] ?? 50) }))
@@ -4571,7 +4571,7 @@
           .slice(0, 3)
           .map((axis) => `${axis.label} ${axis.value}`)
           .join(" / ");
-        return `드래그 반영 중: ${highAxes}. 추천곡과 핵심 코드 설계가 이 좌표를 우선 참고합니다.`;
+        return `드래그 반영 중: ${highAxes}. 추천곡과 핵심 코드진행 설계가 이 좌표를 우선 참고합니다.`;
       }
 
       function moodProfileFromAxes(axes = conceptAxisScores()) {
@@ -4702,7 +4702,7 @@
           <div class="visual-graph-panel">
             <div>
               <div class="visual-graph-title">컨셉 타입 레이더</div>
-              <div class="visual-graph-subtitle">도형 선택과 감정 좌표가 만드는 8축 성향입니다. 튀어나온 축이 핵심 코드와 작곡 설계의 우선순위가 됩니다.</div>
+              <div class="visual-graph-subtitle">도형 선택과 감정 좌표가 만드는 8축 성향입니다. 튀어나온 축이 핵심 코드진행과 작곡 설계의 우선순위가 됩니다.</div>
             </div>
             <div class="radar-wrap">
               <svg class="radar-chart" viewBox="0 0 180 180" role="img" aria-label="컨셉 8축 레이더 그래프">
@@ -5783,7 +5783,7 @@
           `컨셉 타입명: ${type.code} · ${type.name}`,
           `타입 축: ${type.gloss}`,
           `세부 유형: ${direction.archetype.detailedName || direction.archetype.name} (${direction.archetype.detailedCode || direction.archetype.code}) · ${direction.archetype.brief}`,
-          `성향 좌표: ${leadingAxes}. 좌표와 막대가 한쪽으로 기울수록 핵심 코드 설계도 더 강하게 그 방향으로 잡힙니다.`,
+          `성향 좌표: ${leadingAxes}. 좌표와 막대가 한쪽으로 기울수록 핵심 코드진행 설계도 더 강하게 그 방향으로 잡힙니다.`,
           `태도 질문: ${profile ? `${profile}에서는 어떤 욕망을 숨기고 어떤 상처를 처리하는가?` : "말하는 자리/말투/애착/결핍을 고르면 유형이 더 정확해집니다."}`,
           `한 줄 약속: ${concept || idea || selectedLine || "선택한 도형들이 자동으로 한 줄 컨셉이 됩니다."}`,
           `추천 방향: ${direction.lane}. 제목 감각은 ${direction.titleShape}.`,
@@ -6333,7 +6333,7 @@
         saveChordDraft(editor.value);
         renderSongPlan(referenceSongsForBrief());
         renderChordVoicePreview();
-        setStatus("수정한 핵심 코드가 작곡 설계에 반영됨");
+        setStatus("수정한 핵심 코드진행이 작곡 설계에 반영됨");
       }
 
       function midiFrequency(midi) {
@@ -6518,7 +6518,7 @@
           // Ignore already-closed contexts.
         }
         state.chordAudio = null;
-        setStatus("코드 재생 정지");
+        setStatus("코드진행 재생 정지");
       }
 
       function playChordText(rawText, label = "코드") {
@@ -6587,7 +6587,7 @@
           context,
           timeout: window.setTimeout(() => {
             stopChordPlayback();
-            setStatus("코드 재생 완료");
+            setStatus("코드진행 재생 완료");
           }, chords.length * chordDuration * 1000 + 300),
         };
         setStatus(`${label} 재생 중 · ${chords.length}개`);
@@ -6596,7 +6596,7 @@
       function playChordDraft() {
         const editor = $("chordEditor");
         if (!editor) return;
-        playChordText(editor.value, "핵심 코드");
+        playChordText(editor.value, "핵심 코드진행");
       }
 
       function renderSongPlan(songs = referenceSongsForBrief()) {
@@ -6679,15 +6679,15 @@
             },
             {
               title: "다음 행동",
-              value: "유형 맞춤 후보곡 20곡 또는 참고곡 찾기 검색 결과에서 마음에 드는 곡을 고른 뒤 `핵심 코드 생성`을 누르세요.",
+              value: "유형 맞춤 후보곡 20곡 또는 참고곡 찾기 검색 결과에서 마음에 드는 곡을 고른 뒤 `핵심 코드진행 생성`을 누르세요.",
             },
             {
               title: "코드 청음",
-              value: "최종 선택곡을 고른 뒤 생성된 코드 설계를 수정하고 들을 수 있습니다. 선택 전에는 이전 코드나 임시 코드를 표시하지 않습니다.",
+              value: "최종 선택곡을 고른 뒤 생성된 코드진행을 수정하고 들을 수 있습니다. 선택 전에는 이전 코드진행이나 임시 코드를 표시하지 않습니다.",
               extra: planTable([
                 { part: "1", design: "유형 맞춤 후보곡 20 생성", basis: "컨셉 좌표와 선택 도형" },
                 { part: "2", design: "최종 선택곡 담기", basis: "선택곡만 분석/통계 기준" },
-                { part: "3", design: "핵심 코드 생성", basis: "코드/후크/멜로디/가사/편곡 통합" },
+                { part: "3", design: "핵심 코드진행 생성", basis: "코드/후크/멜로디/가사/편곡 통합" },
               ]),
             },
           ];
@@ -6695,7 +6695,7 @@
           const editor = $("chordEditor");
           if (editor) {
             editor.value = "";
-            editor.placeholder = "최종 선택곡을 먼저 담으면 선택곡 통계 기반 코드 설계가 여기에 표시됩니다.";
+            editor.placeholder = "최종 선택곡을 먼저 담으면 선택곡 통계 기반 핵심 코드진행이 여기에 표시됩니다.";
           }
           const bpmInput = $("chordBpmInput");
           if (bpmInput) {
@@ -6858,13 +6858,13 @@
         if (!songs.length) {
           renderSongPlan([]);
           renderConceptHints();
-          if (forceCoreChord) setStatus("최종 선택곡을 먼저 담아야 핵심 코드를 만들 수 있습니다", true);
+          if (forceCoreChord) setStatus("최종 선택곡을 먼저 담아야 핵심 코드진행을 만들 수 있습니다", true);
           return;
         }
 
         renderSongPlan(songs);
         renderConceptHints();
-        if (forceCoreChord) setStatus("선택곡 통계로 핵심 코드 생성됨");
+        if (forceCoreChord) setStatus("선택곡 통계로 핵심 코드진행 생성됨");
       }
 
       function renderCandidatePool() {

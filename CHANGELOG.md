@@ -4,7 +4,8 @@
 
 ### Fixed
 
-- Removed the public-site creative brief panel from the main workflow and redirected the creation action to final-pick-based core chord generation.
+- Removed the public-site creative brief panel from the main workflow and redirected the creation action to final-pick-based core chord progression generation.
+- Renamed the public-site core chord wording to core chord progression throughout the composition workspace so the central object is always the progression, not a single chord.
 - Corrected public-site chord audition voicing so `add9` chords no longer imply a dominant seventh and slash chords render their bass note separately.
 - Tightened public-site chord playback accuracy with a fuller chord parser for `6/9`, slash bass, altered tensions, omissions, power chords, and progression-aware voice leading.
 - Added per-section playback buttons to the public-site composition chord table so Verse, Pre, Chorus, and Bridge progressions can be auditioned independently.
