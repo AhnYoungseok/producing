@@ -17,6 +17,7 @@
 - Added local public-site editing for chorus/hook excerpts, lyric source/input/permission/visibility/confidence metadata, section chord progressions, Roman numeral conversion, harmonic interpretation, and hook melody summaries.
 - Expanded the public-site required analysis model from 3 fields to 5 creative axes: lyrics, melody, rhythm/groove, chord progression, and accompaniment/production method.
 - Added Composer Coach hook-melody sketches directly under the lyric hook examples, with three generated contour/rhythm variants and browser Web Audio playback for quick auditioning.
+- Added a public-site composition plan panel next to the creation brief, separating song structure, chord progression, core lyric, and accompaniment/instrument recommendations from the long-form brief.
 - Added `POST /api/composer/{project_id}/reset` to restart the Composer Coach concept flow without manually editing the database.
 - Added and tested the bulk Hook Lab summary response shape for `GET /api/library/hook-summaries`, including country, year, BPM, key, hook cue/type/location, melody summaries, lyrics source status, confidence, and updated timestamps.
 - Added a Hook Lab endpoint structure test for the bulk summary payload.
@@ -26,6 +27,7 @@
 ### Changed
 
 - Optimized public-site concept selection so button state updates immediately while heavy recommendation and brief regeneration are debounced and cached.
+- Expanded the public-site reference-song finder list height so more songs remain visible while composing, especially on desktop and mobile review screens.
 - Moved the concept reset button to the top of the concept section and the brief reset button to the top of the creation brief section.
 - Updated the public-site concept label to the softer `감성 / 말투`.
 - Changed lyric analysis completion so structure-only analysis can count as analyzed while still showing that the original chorus/hook text must be manually verified before any excerpt is displayed.

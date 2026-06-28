@@ -260,6 +260,18 @@
         margin-top: 14px;
       }
 
+      .brief-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 0.58fr);
+        gap: 12px;
+        align-items: start;
+        margin-top: 14px;
+      }
+
+      .brief-layout .recipe {
+        margin-top: 0;
+      }
+
       .concept-lab {
         display: grid;
         gap: 12px;
@@ -678,7 +690,8 @@
 
       .reference-panel .song-grid {
         grid-template-columns: 1fr;
-        max-height: 58vh;
+        min-height: min(70vh, 780px);
+        max-height: min(82vh, 1100px);
         overflow-y: auto;
       }
 
@@ -1124,7 +1137,13 @@
       }
 
       .recipe {
-        margin-top: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfdff;
+        overflow: hidden;
+      }
+
+      .song-plan {
         border: 1px solid var(--line);
         border-radius: 8px;
         background: #fbfdff;
@@ -1150,6 +1169,36 @@
       .recipe-title {
         font-size: 13px;
         font-weight: 900;
+      }
+
+      .song-plan-body {
+        display: grid;
+        gap: 9px;
+        padding: 10px;
+        max-height: min(76vh, 920px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      .plan-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        background: #fff;
+      }
+
+      .plan-card-title {
+        color: var(--teal-dark);
+        font-size: 12px;
+        font-weight: 950;
+      }
+
+      .plan-card-value {
+        margin-top: 6px;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.45;
+        white-space: pre-wrap;
       }
 
       .recipe-body {
@@ -1198,8 +1247,13 @@
         }
 
         .reference-panel .song-grid {
+          min-height: 620px;
           max-height: none;
           overflow-y: visible;
+        }
+
+        .brief-layout {
+          grid-template-columns: 1fr;
         }
 
         .finder {
@@ -1237,6 +1291,10 @@
           min-height: 68vh;
           max-height: 76vh;
           font-size: 14px;
+        }
+
+        .reference-panel .song-grid {
+          min-height: 720px;
         }
 
         .concept-title {
@@ -1334,15 +1392,26 @@
                 <button id="recipeButton" type="button">브리프 생성</button>
               </div>
             </div>
-            <div class="recipe">
-              <div class="recipe-head">
-                <div class="recipe-title">창작 브리프</div>
-                <div class="header-actions">
-                  <button id="clearSelectionButton" class="ghost" type="button">브리프 초기화</button>
-                  <button id="copyRecipeButton" class="ghost" type="button">복사</button>
+            <div class="brief-layout">
+              <div class="recipe">
+                <div class="recipe-head">
+                  <div class="recipe-title">창작 브리프</div>
+                  <div class="header-actions">
+                    <button id="clearSelectionButton" class="ghost" type="button">브리프 초기화</button>
+                    <button id="copyRecipeButton" class="ghost" type="button">복사</button>
+                  </div>
                 </div>
+                <div id="recipeBody" class="recipe-body">참고곡을 2곡 이상 담으면 조합 브리프를 만들 수 있습니다.</div>
               </div>
-              <div id="recipeBody" class="recipe-body">참고곡을 2곡 이상 담으면 조합 브리프를 만들 수 있습니다.</div>
+              <aside class="song-plan" aria-label="작곡 설계 요약">
+                <div class="recipe-head">
+                  <div>
+                    <div class="recipe-title">작곡 설계 요약</div>
+                    <div class="small">구조 · 코드진행 · 핵심가사 · 반주 악기</div>
+                  </div>
+                </div>
+                <div id="songPlanBody" class="song-plan-body"></div>
+              </aside>
             </div>
             <p class="small">
               브리프는 코드/화성, 곡 구조, 후크 설계를 우선합니다. 참고곡은 아래 또는 우측에서 필요할 때만 찾아 담으면 됩니다.
@@ -4798,6 +4867,143 @@
         ].join("\n");
       }
 
+      function planReferenceRows(songs, limit = 4) {
+        return sortByHitPriority(songs)
+          .slice(0, limit)
+          .map((song, index) => {
+            const analysis = songChordAnalysis(song);
+            const melody = hookMelodyInfo(song);
+            return [
+              `${index + 1}. ${song.title} - ${song.artist}`,
+              `   코드: ${analysis.loop || analysis.suggested || "코드진행 분석 필요"}`,
+              `   Roman: ${analysis.roman.loop || "코드 입력 후 자동 변환"}`,
+              `   후크 멜로디: ${melody.contour || melody.interval || "후크 멜로디 분석 필요"}`,
+            ].join("\n");
+          })
+          .join("\n");
+      }
+
+      function renderSongPlan(songs = referenceSongsForBrief()) {
+        const body = $("songPlanBody");
+        if (!body) return;
+
+        if (!songs.length) {
+          body.innerHTML = [
+            {
+              title: "창작곡 구조",
+              value: "참고곡을 담거나 유형 맞춤 20곡을 누르면 Intro, Verse, Pre-Chorus, Chorus, Bridge, Outro 설계가 여기 따로 정리됩니다.",
+            },
+            {
+              title: "코드진행",
+              value: "추천곡의 코드/키/BPM/Roman numeral 신호를 읽어 새 곡용 진행으로 변형합니다.",
+            },
+            {
+              title: "핵심가사",
+              value: "브리프 생성 후 후렴 첫 줄, 제목 큐, 반복 문장 후보를 바로 볼 수 있습니다.",
+            },
+            {
+              title: "반주 악기 추천",
+              value: "피아노, 기타, 스트링, 드럼 빌드업, 신스/패드 등 참고곡 통계 기반 반주 방향을 분리해서 보여줍니다.",
+            },
+          ]
+            .map(
+              (card) => `
+                <section class="plan-card">
+                  <div class="plan-card-title">${escapeHtml(card.title)}</div>
+                  <div class="plan-card-value">${escapeHtml(card.value)}</div>
+                </section>
+              `
+            )
+            .join("");
+          return;
+        }
+
+        const direction = conceptDirection(songs);
+        const { concept, selectedLine, idea } = conceptState();
+        const conceptLine = concept || selectedLine || idea || direction.promise;
+        const palette = harmonyPalette(songs);
+        const avgBpm = summarizeBpm(songs);
+        const stats = referenceStats(songs);
+        const hookLines = lyricHookExamples(direction)
+          .slice(0, 5)
+          .map((line, index) => `${index + 1}. ${line}`)
+          .join("\n");
+        const lyricStatus = shortList(
+          songs.map((song) => {
+            const lyric = hookLyricInfo(song);
+            return lyric.excerpt ? `${song.title}: 후크 문장 있음` : `${song.title}: 후렴구 입력 필요`;
+          }),
+          4
+        );
+        const instrumentSet = shortList(songs.map((song) => accompanimentInfo(song).instrumentation), 5);
+        const productionSet = shortList(songs.map((song) => accompanimentInfo(song).build || accompanimentInfo(song).method), 4);
+        const rhythmSet = shortList(songs.map((song) => rhythmInfo(song).pattern || rhythmInfo(song).hook), 4);
+        const referenceRows = planReferenceRows(songs, 4) || "참고곡 코드진행 분석 필요";
+        const cards = [
+          {
+            title: "창작곡 구조",
+            value: [
+              `템포/분위기: ${avgBpm}`,
+              `통계 기준: ${songs.length}곡 · BPM ${stats.avgBpm} (${stats.range})`,
+              "Intro 4마디: 코드 색과 훅 리듬 그림자를 먼저 제시",
+              "Verse 1 8마디: 낮은 밀도, 장면 중심 문장",
+              "Pre-Chorus 8마디: 베이스 움직임과 긴장 화음으로 상승",
+              "Chorus 8-16마디: 제목 훅을 1마디 안에 노출하고 5마디째 해상",
+              "Bridge 8마디: 시점 전환, borrowed chord 또는 secondary dominant 1회",
+              "Final Chorus 16마디: 첫 줄은 얇게, 중반부터 하모니/더블링 확장",
+            ].join("\n"),
+          },
+          {
+            title: "코드진행",
+            value: [
+              `중심키: ${palette.key || inferKeyCenter(songs)}`,
+              `화성 팔레트: ${palette.name}`,
+              "Verse:",
+              ...palette.verse,
+              "Pre-Chorus:",
+              ...palette.pre,
+              "Chorus:",
+              ...palette.chorus,
+              "Bridge:",
+              ...palette.bridge,
+              "",
+              "추천곡 신호:",
+              referenceRows,
+            ].join("\n"),
+          },
+          {
+            title: "핵심가사",
+            value: [
+              `한 줄 콘셉트: ${conceptLine}`,
+              `후렴/후크 상태: ${lyricStatus}`,
+              "가사 후크 후보:",
+              hookLines,
+              "원칙: 참고곡 문장과 운율은 복제하지 말고, 짧은 선언형 문장 + 마지막 줄 변주만 가져옵니다.",
+            ].join("\n"),
+          },
+          {
+            title: "반주 악기 추천",
+            value: [
+              `악기 구성: ${instrumentSet}`,
+              `제작/빌드업: ${productionSet}`,
+              `리듬/그루브: ${rhythmSet}`,
+              "운용: 1절은 핵심 악기 1-2개로 좁히고, 프리코러스에서 베이스/패드/하이햇을 열며, 마지막 후렴에서 스트링·더블링·응답 보컬을 추가합니다.",
+            ].join("\n"),
+          },
+        ];
+
+        body.innerHTML = cards
+          .map(
+            (card) => `
+              <section class="plan-card">
+                <div class="plan-card-title">${escapeHtml(card.title)}</div>
+                <div class="plan-card-value">${escapeHtml(card.value)}</div>
+              </section>
+            `
+          )
+          .join("");
+      }
+
       function buildRecipe() {
         const songs = referenceSongsForBrief();
         if (songs.length < 2) {
@@ -4806,6 +5012,7 @@
             "",
             "데이터가 로딩되면 유형에 맞는 히트곡 20곡을 자동으로 찾아 컨셉을 코드/구조/후크 설계로 확장합니다.",
           ].join("\n");
+          renderSongPlan(songs);
           renderConceptHints();
           return;
         }
@@ -4879,6 +5086,7 @@
         ].join("\n");
 
         $("recipeBody").textContent = brief;
+        renderSongPlan(songs);
         renderConceptHints();
       }
 
