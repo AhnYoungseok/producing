@@ -1020,6 +1020,31 @@
         text-decoration: none;
       }
 
+      .final-select-button {
+        border-color: var(--teal-dark);
+        background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+        color: #fff;
+        box-shadow: 0 8px 18px rgba(0, 124, 116, 0.16);
+      }
+
+      .final-select-button:disabled {
+        border-color: var(--line-strong);
+        background: #e9f4f3;
+        color: var(--teal-dark);
+        box-shadow: none;
+      }
+
+      .selection-rule {
+        border-left: 3px solid var(--teal);
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: #f1fbfa;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 850;
+        line-height: 1.45;
+      }
+
       details {
         border-top: 1px solid var(--line);
         padding-top: 9px;
@@ -1802,6 +1827,7 @@
                 <span>최종 선택곡</span>
                 <span class="small">후보곡이나 참고곡에서 고른 곡만 브리프/작곡 설계에 반영됩니다.</span>
               </div>
+              <div class="selection-rule">브리프 상세 생성과 작곡 설계는 이 영역에 담긴 최종 선택곡의 코드/후크/멜로디/가사/편곡 분석과 통계만 사용합니다.</div>
               <div id="selectedList" class="selected-list"></div>
               <div id="selectedInsight" class="selected-insight"></div>
             </section>
@@ -3262,6 +3288,7 @@
           renderSelection();
           renderSongs();
           buildRecipe();
+          setStatus(`${song.title} - 최종 선택곡에 담았습니다`);
         }
       }
 
@@ -3417,7 +3444,7 @@
                   ${analysisEditForm(song, key)}
                 </details>
                 <div class="song-actions">
-                  <button type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 선택됨" : "최종 선택"}</button>
+                  <button class="final-select-button" type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 선택곡에 담김" : "최종 선택곡에 담기"}</button>
                   <button class="secondary" type="button" data-auto-analysis="${escapeHtml(key)}">AI 5축 분석 초안</button>
                   <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
                 </div>
@@ -4408,12 +4435,7 @@
       }
 
       function referenceSongsForBrief() {
-        const baseHits = sortByHitPriority(state.filtered.length ? state.filtered : state.songs).slice(0, 20);
-        const auto = hasConceptSeed() ? conceptReferenceSongs(20) : baseHits;
-        if (state.selected.length) return sortByHitPriority(state.selected).slice(0, 20);
-        if (state.candidates.length) return state.candidates.slice(0, 20);
-        if (hasConceptSeed()) return auto.slice(0, 20);
-        return baseHits;
+        return sortByHitPriority(state.selected).slice(0, 20);
       }
 
       function referenceStats(songs) {
@@ -5982,6 +6004,44 @@
         if (!songs.length) {
           body.innerHTML = [
             {
+              title: "작곡 설계 대기",
+              value: "후보곡이나 검색 결과에서 `최종 선택곡에 담기`를 눌러 곡을 모으세요. 최종 선택곡이 없으면 작곡 설계는 생성하지 않습니다.",
+            },
+            {
+              title: "분석 기준",
+              value: "작곡 설계의 구조, 코드진행, 후크, 가사 방향, 편곡 제안은 반드시 아래 최종 선택곡들의 분석과 통계만 사용합니다.",
+            },
+            {
+              title: "다음 행동",
+              value: "유형 맞춤 후보곡 20곡 또는 참고곡 찾기 검색 결과에서 마음에 드는 곡을 고른 뒤 `브리프 상세 생성`을 누르세요.",
+            },
+            {
+              title: "코드 청음",
+              value: "최종 선택곡을 고른 뒤 생성된 코드 설계를 수정하고 들을 수 있습니다. 선택 전에는 이전 코드나 임시 코드를 표시하지 않습니다.",
+            },
+          ]
+            .map(
+              (card) => `
+                <section class="plan-card">
+                  <div class="plan-card-title">${escapeHtml(card.title)}</div>
+                  <div class="plan-card-value">${escapeHtml(card.value)}</div>
+                </section>
+              `
+            )
+            .join("");
+          const editor = $("chordEditor");
+          if (editor) {
+            editor.value = "";
+            editor.placeholder = "최종 선택곡을 먼저 담으면 선택곡 통계 기반 코드 설계가 여기에 표시됩니다.";
+          }
+          const bpmInput = $("chordBpmInput");
+          if (bpmInput) {
+            bpmInput.value = "";
+            bpmInput.placeholder = "선택곡 BPM";
+          }
+          return;
+          body.innerHTML = [
+            {
               title: "창작곡 구조",
               value: "참고곡을 담거나 유형 맞춤 20곡을 누르면 Intro, Verse, Pre-Chorus, Chorus, Bridge, Outro 설계가 여기 따로 정리됩니다.",
             },
@@ -6186,6 +6246,17 @@
         const songs = referenceSongsForBrief();
         if (!songs.length) {
           $("recipeBody").textContent = [
+            "[최종 선택곡 필요]",
+            "브리프 상세 생성과 작곡 설계는 후보곡 전체가 아니라, 사용자가 `최종 선택곡에 담기`로 고른 곡들의 분석/통계만 사용합니다.",
+            "",
+            "1. `유형 맞춤 20곡`을 눌러 후보곡을 만들거나 참고곡 찾기에서 검색하세요.",
+            "2. 마음에 드는 곡 카드의 `최종 선택곡에 담기` 버튼을 누르세요.",
+            "3. 아래 `최종 선택곡`에 모인 곡을 확인한 뒤 다시 `브리프 상세 생성`을 누르세요.",
+          ].join("\n");
+          renderSongPlan([]);
+          renderConceptHints();
+          return;
+          $("recipeBody").textContent = [
             conceptBrief(songs),
             "",
             "유형 맞춤 후보곡이나 참고곡에서 최종 선택곡을 먼저 골라주세요.",
@@ -6369,7 +6440,7 @@
                 </div>
                 <div class="selected-actions">
                   <a href="${escapeHtml(youtube)}" target="_blank" rel="noopener">YouTube 바로가기</a>
-                  <button type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 선택됨" : "최종 선택"}</button>
+                  <button class="final-select-button" type="button" data-add="${escapeHtml(key)}" ${selected ? "disabled" : ""}>${selected ? "최종 선택곡에 담김" : "최종 선택곡에 담기"}</button>
                 </div>
               </div>
             `;
