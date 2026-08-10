@@ -1,6 +1,6 @@
 metric,value,note
-total_after_baseline,44454,baseline local DB count plus public cloud song rows
+total_after_baseline,44464,baseline local DB count plus public cloud song rows
 baseline_count,366,existing local DB rows are stored as identity hashes only
-public_cloud_song_rows,44088,rows visible in cloud_ledger/song_library.csv
-updated_at,2026-08-10T20:38:14+09:00,last GitHub Actions ledger update time
+public_cloud_song_rows,44098,rows visible in cloud_ledger/song_library.csv
+updated_at,2026-08-10T21:30:50+09:00,last GitHub Actions ledger update time
 source,GitHub Actions cloud ledger,Google Sheets mirrors chunked CSV files with IMPORTDATA
